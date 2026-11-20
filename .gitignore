@@ -1,0 +1,33 @@
+.browser-profile/
+.browser-profile-temp/
+# Legacy playwright-cli artifacts (obsolete, kept ignored to avoid accidental commits)
+.playwright-cli/
+.playwright-mcp/
+.playwright/
+.impeccable/
+.devin/
+.env
+node_modules/
+orca/
+.DS_Store
+.tmp-*
+.tmp_*
+.claude/
+data/
+# acp-connector config (Telegram/Discord bot tokens)
+acp-connector.jsonc
+# Remote-channel uploads
+uploads/
+# Local state
+.assistant/
+logs/
+.browser-profile-*/
+# Encrypted passwords of accounts created on career sites (local only)
+.secrets/
+# Personal configuration (never commit)
+config/*
+!config/perfil.ejemplo.json
+# Local database, logs and exports (personal data)
+datos/
+# Bundled Node runtime of the Windows package
+runtime/

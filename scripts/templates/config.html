@@ -1,0 +1,348 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job Seeker: configuración</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --text:#1c2430; --muted:#5b6675; --line:#d9dee6; --accent:#1f5fbf; --ok:#17794a; --err:#b3261e; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#12161c; --card:#1b212a; --text:#e7ebf0; --muted:#9aa5b4; --line:#313a47; --accent:#6ea8ff; --ok:#5fd39a; --err:#ff8a80; } }
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; background:var(--bg); color:var(--text); }
+  header { padding:20px 24px 8px; max-width:920px; margin:0 auto; }
+  h1 { font-size:22px; margin:0 0 4px; } h2 { font-size:17px; margin:0 0 4px; }
+  p.sub { color:var(--muted); margin:0 0 12px; }
+  main { max-width:920px; margin:0 auto; padding:0 24px 120px; }
+  section { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:18px 20px; margin:16px 0; }
+  label { display:block; font-weight:600; margin:14px 0 4px; }
+  .hint { color:var(--muted); font-size:13px; font-weight:400; margin:0 0 4px; }
+  .req { color:var(--accent); font-weight:600; font-size:13px; }
+  input[type=text], textarea, select { width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--text); font:inherit; }
+  textarea { min-height:84px; resize:vertical; }
+  textarea.big { min-height:220px; font-family:ui-monospace, Consolas, monospace; font-size:13px; }
+  .checks label { display:inline-flex; gap:6px; font-weight:400; margin:4px 16px 0 0; align-items:center; }
+  .row { display:grid; grid-template-columns:1fr 1fr auto; gap:8px; margin:6px 0; }
+  .row.q { grid-template-columns:2fr 1fr auto; }
+  button { font:inherit; padding:8px 14px; border-radius:6px; border:1px solid var(--line); background:var(--card); color:var(--text); cursor:pointer; }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+  button.small { padding:4px 10px; }
+  .bar { position:fixed; left:0; right:0; bottom:0; background:var(--card); border-top:1px solid var(--line); padding:12px 24px; }
+  .bar div { max-width:920px; margin:0 auto; display:flex; gap:14px; align-items:center; }
+  #status { color:var(--muted); } #status.ok { color:var(--ok); } #status.err { color:var(--err); white-space:pre-line; }
+  .pending { border-left:3px solid var(--accent); padding:4px 0 4px 12px; margin:12px 0; }
+  a { color:var(--accent); }
+  .top { display:flex; gap:20px; align-items:baseline; flex-wrap:wrap; margin-bottom:6px; }
+  nav { display:flex; gap:16px; } nav a { text-decoration:none; } nav a.here { color:var(--text); font-weight:600; }
+  .tools { display:flex; gap:8px; flex-wrap:wrap; margin:8px 0 0; }
+  .tools input[type=file] { display:none; }
+  .presets { margin:6px 0 14px; } .row-btns { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
+  #imp { margin:10px 0 0; white-space:pre-line; color:var(--muted); } #imp.ok { color:var(--ok); } #imp.err { color:var(--err); }
+</style>
+</head>
+<body>
+<header>
+  <div class="top"><h1>Job Seeker</h1><nav><a href="/">Panel</a><a class="here" href="/config">Configuración</a><a href="/avisos">Avisos para revisar</a><a href="/tablero">Seguimiento</a></nav></div>
+  <p class="sub">Todo se guarda en un archivo local de esta computadora. No hace falta completar todo: lo mínimo es tu nombre, tu email y los puestos que buscás.</p>
+</header>
+<main>
+<section>
+  <h2>Cargar sin tipear</h2>
+  <p class="sub">Opcional: son atajos para no completar campo por campo. Lo obligatorio es solo tu nombre, tu email y los puestos que buscás.</p>
+  <p class="sub">Primera vez y solo tenés tu CV? Probá el <a href="/asistente">asistente con preguntas</a>: lee tu CV y arma la configuración con vos.</p>
+  <p class="sub">Pegá el texto de tu CV, tu firma de mail o una lista del tipo "Teléfono: ...". Detecto nombre, email, teléfono y LinkedIn y los vuelco en los campos de abajo para que los revises antes de guardar.</p>
+  <textarea id="paste" placeholder="Pegá acá el texto (Ctrl+V)"></textarea>
+  <div class="tools">
+    <button type="button" class="primary" id="detect">Detectar mis datos</button>
+    <button type="button" id="ascv">Usar este texto como CV</button>
+    <button type="button" data-pick="cv">Leer CV desde archivo (.docx o .txt)</button>
+  </div>
+  <p class="sub" style="margin-top:14px">O importá archivos ya preparados:</p>
+  <div class="tools">
+    <button type="button" data-pick="perfil">Perfil (perfil.json)</button>
+    <button type="button" data-pick="historial">Historial de postulaciones (.xlsx, .csv o .json)</button>
+    <button type="button" data-pick="contexto">Informe de contexto (.md, .txt o .docx)</button>
+    <input type="file" id="file">
+  </div>
+  <p id="imp"></p>
+  <h3 style="margin-top:18px">Armarlo con tu IA (ChatGPT, Gemini, Claude, Copilot u otra)</h3>
+  <p class="sub">1. Copiá las instrucciones y pegalas en el chat de tu IA (si pegaste tu CV arriba o lo guardaste, ya van incluidas). 2. Respondé sus preguntas. 3. Pegá acá abajo lo que te devuelva y tocá "Cargar respuesta": los campos se completan para que los revises antes de guardar.</p>
+  <div class="tools"><button type="button" id="aicopy">Copiar instrucciones para mi IA</button></div>
+  <textarea id="aiout" readonly style="display:none;min-height:90px"></textarea>
+  <textarea id="aiin" placeholder="Pegá acá la respuesta de tu IA"></textarea>
+  <div class="tools"><button type="button" class="primary" id="aiload">Cargar respuesta</button></div>
+  <p id="aimsg"></p>
+</section>
+<div id="main"><p class="sub">Cargando...</p></div>
+</main>
+<div class="bar"><div><button class="primary" id="save">Guardar</button><span id="status"></span></div></div>
+<script>
+const TOKEN = "__CONFIG_TOKEN__";
+const REQUIRED = ["target_titles", "first_name", "email"];
+const GROUPS = [
+  ["Qué buscás", "Obligatorio: puestos objetivo. Lo demás es opcional. El título del aviso tiene que contener alguno de tus puestos objetivo. Una entrada por línea, en todos los idiomas en que busques.",
+    ["target_titles", "avoid", "senior_only", "description_avoid", "search_queries", "work_modes", "posted_within", "search_location", "onsite_places", "seniority_levels", "salary_min_usd", "salary_min_ars"]],
+  ["Empresas", "Opcional. Las empresas a evitar se descartan siempre. Los tipos de empresa y las condiciones excluyentes los usa el agente al evaluar cada aviso.",
+    ["target_companies", "avoid_companies", "company_types_preferred", "company_types_avoid", "deal_breakers"]],
+  ["Ritmo y límites", "Opcional. Vacío: se usan los valores por defecto (de 7 a 19, entre 10 y 15 por día en LinkedIn, sábado la mitad, domingo descanso, 5 por empresa).",
+    ["timezone", "start_hour", "end_hour", "daily_cap_min", "daily_cap_max", "half_days", "rest_days", "company_cap"]],
+  ["Tus datos", "Obligatorio: nombre y email. Lo demás es opcional, pero muchos formularios piden teléfono y LinkedIn. Se usan para completar formularios.", ["first_name", "last_name", "email", "phone", "city", "state", "country", "linkedin_url"]],
+  ["Respuestas para formularios", "Opcional, pero recomendado. Solo se responde con lo que cargues acá. Lo que falte queda como pregunta pendiente y la postulación espera.",
+    ["headline", "current_company", "school_name", "degree", "field_of_study", "years_of_experience", "experience_years", "english_level", "spanish_level", "notice_period", "seniority", "salary_default", "salary_ars", "salary_usd", "qa"]],
+  ["Seguimiento", "Opcional. Si no tenés planilla, dejalo vacío: el programa lleva su propio registro (lo ves en Tablero). Si llevás una planilla con tus postulaciones, indicá dónde está: el programa la lee antes de cada corrida para no repetir avisos. Solo la lee; nunca la modifica. Las postulaciones que envía el programa se anotan aparte, en un archivo .csv.",
+    ["tracking_file", "auto_log_file"]],
+  ["CV para cada aviso", "Opcional, pero recomendado: sin CV cargado, LinkedIn usa el que tengas marcado ahí. En la Solicitud sencilla de LinkedIn se elige un CV para cada aviso: el de inglés si el aviso está en inglés (o en otro idioma, o es de un país de habla no hispana) y el de español si está en español. Se busca entre los CV que ya tenés guardados en LinkedIn por el nombre del archivo; si no está, se sube desde esta computadora. Si no lo puede elegir ni subir, no envía la postulación.",
+    ["cv_path", "cv_path_en", "cv_rules", "photo_path"]],
+  ["Texto del CV y contexto", "Opcional. Podés pegar el texto del CV y un informe con tus preferencias; el agente los lee al armar tu perfil.",
+    ["cv_text", "context_notes"]],
+];
+const HINTS = {
+  search_queries: 'Ejemplo: ("HR Business Partner" OR HRBP OR "People Partner") NOT (intern OR pasante). Una búsqueda por línea; en cada corrida se usan todas.',
+  onsite_places: "Uno por línea. Ejemplo: buenos aires, caba, san isidro, vicente lopez. Un aviso presencial o híbrido pasa solo si su lugar (lo que está antes de la primera coma) coincide con alguno. Los remotos pasan siempre. Vacío: no se filtra por lugar.",
+  senior_only: "Ejemplo: analista, analyst. Un aviso con esas palabras en el título solo pasa si también dice Senior o Sr (Semi Senior y Ssr no cuentan).",
+  photo_path: "Opcional. Algunos formularios de empresas piden foto: el agente sube esta. Clic derecho sobre la imagen, \"Copiar como ruta de acceso\". Hasta 5 MB.",
+  work_modes: "Sin marcar: no filtra por modalidad.",
+  experience_years: "Tema y años. Las preguntas del tipo \"años de experiencia en X\" solo se responden si X figura acá.",
+  qa: "Pregunta tal como aparece en el formulario y tu respuesta.",
+  salary_min_usd: "Bruto por mes. Si el aviso publica un salario en dólares y su máximo queda debajo de este número, se descarta. Si no publica salario, no se descarta. Un salario anual se divide por 12 y uno por hora se multiplica por 160.",
+  salary_min_ars: "Igual que el de dólares, para avisos que publican salario en pesos. Vacío: no se compara.",
+  tracking_file: "Ruta completa del archivo. En Windows: clic derecho sobre el archivo, \"Copiar como ruta de acceso\", y pegala acá (las comillas se quitan solas). Sirve .xlsx o .csv con columnas de empresa y puesto.",
+  auto_log_file: "Vacío: se guarda en la carpeta datos del programa. Se puede abrir con Excel.",
+  cv_path: "Ruta completa del PDF. En Windows: clic derecho sobre el archivo, \"Copiar como ruta de acceso\". El nombre del archivo tiene que ser el mismo con el que lo subiste a LinkedIn.",
+  cv_path_en: "Igual que el de español. Ejemplo: C:\\Users\\usuario\\Documents\\CV_EN.pdf",
+  cv_rules: "Opcional, una por línea. Ejemplo: recruiter it = CV_IT.pdf. Si el título o la descripción del aviso tienen esas palabras, se usa ese CV antes que la regla del idioma.",
+  salary_default: "Dejalo vacío si preferís que las preguntas de sueldo te las consulte cada vez.",
+};
+const LABELS = { mon: "Lunes", tue: "Martes", wed: "Miércoles", thu: "Jueves", fri: "Viernes", sat: "Sábado", sun: "Domingo", remote: "Remoto", hybrid: "Híbrido", onsite: "Presencial", day: "Último día", week: "Última semana", month: "Último mes" };
+let META = {}, PENDING = [];
+const el = (tag, attrs = {}, kids = []) => { const e = document.createElement(tag); for (const [k, v] of Object.entries(attrs)) { if (k === "text") e.textContent = v; else if (k === "class") e.className = v; else e.setAttribute(k, v); } kids.forEach((c) => e.appendChild(c)); return e; };
+
+function mapRow(container, k = "", v = "") {
+  const row = el("div", { class: "row" });
+  const a = el("input", { type: "text", placeholder: "Tema o pregunta" }); a.value = k;
+  const b = el("input", { type: "text", placeholder: "Años o respuesta" }); b.value = v;
+  const x = el("button", { class: "small", type: "button", text: "Quitar" }); x.onclick = () => row.remove();
+  row.append(a, b, x); container.appendChild(row);
+}
+
+function field(key, value) {
+  const f = META[key]; const wrap = el("div");
+  const lab = el("label", { for: "f_" + key, text: f.label });
+  if (REQUIRED.includes(key)) lab.appendChild(el("span", { class: "req", text: " (obligatorio)" }));
+  wrap.appendChild(lab);
+  if (HINTS[key]) wrap.appendChild(el("p", { class: "hint", text: HINTS[key] }));
+  let input;
+  if (f.type === "list") { input = el("textarea", { id: "f_" + key }); input.value = (value || []).join("\n"); }
+  else if (f.type === "enum") { input = el("select", { id: "f_" + key }); input.appendChild(el("option", { value: "", text: "(sin definir)" })); f.values.forEach((v) => input.appendChild(el("option", { value: v, text: LABELS[v] || v }))); input.value = value || ""; }
+  else if (f.type === "enumlist") { input = el("div", { class: "checks", id: "f_" + key }); f.values.forEach((v) => { const c = el("input", { type: "checkbox", value: v }); c.checked = (value || []).includes(v); input.appendChild(el("label", {}, [c, document.createTextNode(LABELS[v] || v)])); }); }
+  else if (f.type === "map") { input = el("div", { id: "f_" + key }); Object.entries(value || {}).forEach(([k, v]) => mapRow(input, k, v)); const add = el("button", { class: "small", type: "button", text: "Agregar" }); add.onclick = () => mapRow(input); wrap.appendChild(input); wrap.appendChild(add); return wrap; }
+  else if (f.type === "int") { input = el("input", { type: "text", id: "f_" + key, inputmode: "numeric" }); input.value = value == null ? "" : value; }
+  else if ((f.maxLen || 200) > 300) { input = el("textarea", { id: "f_" + key, class: (f.maxLen || 0) > 5000 ? "big" : "" }); input.value = value || ""; }
+  else { input = el("input", { type: "text", id: "f_" + key }); input.value = value == null ? "" : value; }
+  wrap.appendChild(input); return wrap;
+}
+
+function render(settings) {
+  const main = document.getElementById("main"); main.textContent = "";
+  if (PENDING.length) {
+    const s = el("section", {}, [el("h2", { text: "Preguntas pendientes (" + PENDING.length + ")" }), el("p", { class: "sub", text: "Las hicieron formularios y no había una respuesta tuya. Al responder, las postulaciones que esperaban se pueden reintentar." })]);
+    const aiq = el("div", { class: "tools" });
+    const aiqb = el("button", { type: "button", text: "Pedirle a mi IA que sugiera respuestas" });
+    const aiqOut = el("textarea", { readonly: "readonly", style: "display:none;min-height:80px" });
+    const aiqIn = el("textarea", { placeholder: "Pegá acá la respuesta de tu IA y tocá Completar" });
+    const aiqLoad = el("button", { type: "button", text: "Completar con su respuesta" });
+    const aiqMsg = el("p", { class: "hint" });
+    aiqb.onclick = async () => {
+      try { const t = (await api("/api/ia/preguntas", {})).prompt; aiqOut.value = t; aiqOut.style.display = "block"; await copyText(t, aiqOut); aiqMsg.textContent = "Copiado. Pegalo en tu IA, respondé lo que te pregunte y pegá acá su respuesta."; }
+      catch (e) { aiqMsg.textContent = e.message; }
+    };
+    aiqLoad.onclick = async () => {
+      try {
+        const r = await api("/api/ia/leer", { text: aiqIn.value, kind: "preguntas" }); let n = 0;
+        Object.entries(r.answers || {}).forEach(([id, v]) => { const x = document.querySelector('[data-pending="' + id + '"]'); if (x && !x.disabled) { x.value = v; n++; } });
+        aiqMsg.textContent = n ? "Completé " + n + " respuesta(s). Revisalas y tocá Guardar." : "No encontré respuestas para estas preguntas en lo que pegaste.";
+      } catch (e) { aiqMsg.textContent = e.message; }
+    };
+    aiq.appendChild(aiqb); s.appendChild(aiq); s.appendChild(aiqOut); s.appendChild(aiqIn); const t2 = el("div", { class: "tools" }); t2.appendChild(aiqLoad); s.appendChild(t2); s.appendChild(aiqMsg);
+    PENDING.forEach((q) => {
+      const box = el("div", { class: "pending" }, [el("div", { text: q.question }), el("p", { class: "hint", text: q.blocked_jobs + " postulación(es) en espera" })]);
+      if (q.type === "file") box.appendChild(el("p", { class: "hint", text: "Pide subir un archivo. Si es una foto, cargá la ruta en \"Foto de perfil\" (sección CV para cada aviso) y descartá esta pregunta; el agente la va a subir sola. Si es otro archivo, descartala y completá esa postulación a mano." }));
+      let inp;
+      if (q.options && q.options.length) { inp = el("select", { "data-pending": q.id }); inp.appendChild(el("option", { value: "", text: "(sin responder)" })); q.options.forEach((o) => inp.appendChild(el("option", { value: o, text: o }))); }
+      else inp = el("input", { type: "text", "data-pending": q.id, placeholder: "Tu respuesta" });
+      box.appendChild(inp);
+      const x = el("button", { type: "button", class: "ghost", text: "No es una pregunta del formulario: descartarla" });
+      x.style.marginTop = "6px";
+      x.onclick = () => { box.setAttribute("data-discard", q.id); box.style.opacity = ".45"; inp.disabled = true; x.textContent = "Se descarta al guardar"; x.disabled = true; };
+      box.appendChild(x); s.appendChild(box);
+    });
+    main.appendChild(s);
+  }
+  GROUPS.forEach(([title, sub, keys]) => {
+    const s = el("section", {}, [el("h2", { text: title }), el("p", { class: "sub", text: sub })]);
+    if (title === "Qué buscás") s.appendChild(presetBar(settings));
+    keys.filter((k) => META[k]).forEach((k) => s.appendChild(field(k, settings[k])));
+    main.appendChild(s);
+  });
+}
+
+// --- presets by area ---
+let PRESETS = null, PRESET_FIELDS = [];
+function presetBar(settings) {
+  const box = el("div", { class: "presets" });
+  const msg = el("p", { class: "hint" });
+  box.appendChild(el("p", { class: "hint", text: "Plantillas por área: cargan puestos, palabras a evitar y búsquedas de ejemplo en estos campos. Después los editás como quieras. Para algo a tu medida, usá el asistente." }));
+  const row = el("div", { class: "row-btns" });
+  if (PRESETS) {
+    Object.entries(PRESETS).forEach(([id, p]) => {
+      const b = el("button", { type: "button", class: "small", text: p.label });
+      b.onclick = () => {
+        if (b.dataset.armed !== "1" && PRESET_FIELDS.some((k) => { const n = document.getElementById("f_" + k); return n && n.value.trim(); })) {
+          document.querySelectorAll(".presets button").forEach((x) => { x.dataset.armed = ""; });
+          b.dataset.armed = "1"; msg.textContent = "Esto reemplaza lo que hay en puestos, palabras a evitar, solo senior, frases a evitar y búsquedas. Tocá de nuevo \"" + p.label + "\" para confirmar."; return;
+        }
+        PRESET_FIELDS.forEach((k) => { const n = document.getElementById("f_" + k); if (n) n.value = (p[k] || []).join("\n"); });
+        b.dataset.armed = ""; msg.textContent = "Cargué la plantilla de " + p.label + ". Revisala, ajustala y tocá Guardar.";
+      };
+      row.appendChild(b);
+    });
+    const clear = el("button", { type: "button", class: "small", text: "Vaciar" });
+    clear.onclick = () => { PRESET_FIELDS.forEach((k) => { const n = document.getElementById("f_" + k); if (n) n.value = ""; }); msg.textContent = "Vacié esos campos. Tocá Guardar para que quede así."; };
+    row.appendChild(clear);
+    const wiz = el("a", { href: "/asistente", class: "small", text: "Usar el asistente con preguntas" }); wiz.style.marginLeft = "8px";
+    row.appendChild(wiz);
+  }
+  box.appendChild(row); box.appendChild(msg);
+  // First time (nothing loaded yet): the HR template comes filled in, ready to edit.
+  if (PRESETS && PRESETS.rrhh && !(settings.target_titles || []).length && !(settings.search_queries || []).length) {
+    setTimeout(() => {
+      PRESET_FIELDS.forEach((k) => { const n = document.getElementById("f_" + k); if (n && !n.value.trim()) n.value = (PRESETS.rrhh[k] || []).join("\n"); });
+      msg.textContent = "Vienen cargados términos de ejemplo de Recursos Humanos. Cambialos por los tuyos, o elegí otra plantilla, y tocá Guardar.";
+    }, 0);
+  }
+  return box;
+}
+
+function collect() {
+  const out = {};
+  for (const [key, f] of Object.entries(META)) {
+    const n = document.getElementById("f_" + key); if (!n) continue;
+    if (f.type === "list") out[key] = n.value.split("\n").map((x) => x.trim()).filter(Boolean);
+    else if (f.type === "enumlist") out[key] = [...n.querySelectorAll("input:checked")].map((c) => c.value);
+    else if (f.type === "map") { const m = {}; n.querySelectorAll(".row").forEach((r) => { const [a, b] = r.querySelectorAll("input"); if (a.value.trim() && b.value.trim()) m[a.value.trim()] = b.value.trim(); }); out[key] = m; }
+    else if (f.type === "int") out[key] = n.value.trim() === "" ? null : Number(n.value.trim());
+    else out[key] = n.value.trim() || null;
+  }
+  const pending = {};
+  document.querySelectorAll("[data-pending]").forEach((n) => { if (n.value.trim()) pending[n.getAttribute("data-pending")] = n.value.trim(); });
+  const pending_discard = [...document.querySelectorAll("[data-discard]")].map((n) => n.getAttribute("data-discard"));
+  return { settings: out, pending, pending_discard };
+}
+
+async function load() {
+  const r = await fetch("/api/config", { headers: { "X-Config-Token": TOKEN } });
+  const j = await r.json();
+  if (!r.ok) throw new Error(j.error || "No se pudo cargar");
+  if (!PRESETS) { try { const pr = await fetch("/api/presets", { headers: { "X-Config-Token": TOKEN } }).then((r) => r.json()); PRESETS = pr.presets; PRESET_FIELDS = pr.fields || []; } catch (e) { PRESETS = null; } }
+  META = j.fields; PENDING = j.pending || []; render(j.settings || {});
+}
+async function api(path, body) {
+  const r = await fetch(path, { method: body === undefined ? "GET" : "POST", headers: { "Content-Type": "application/json", "X-Config-Token": TOKEN }, body: body === undefined ? undefined : JSON.stringify(body) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || "No se pudo completar");
+  return j;
+}
+async function copyText(t, box) {
+  try { await navigator.clipboard.writeText(t); } catch (e) { if (box) { box.focus(); box.select(); document.execCommand("copy"); } }
+}
+document.getElementById("aicopy").onclick = async () => {
+  const out = document.getElementById("aiout"), m = document.getElementById("aimsg");
+  try {
+    const cv = document.getElementById("paste").value.trim();
+    const t = (await api("/api/ia/perfil", { cv })).prompt;
+    out.value = t; out.style.display = "block"; await copyText(t, out);
+    m.textContent = "Copiado. Pegalo en el chat de tu IA. Cuando te devuelva el JSON, pegalo en el recuadro de abajo."; m.className = "ok";
+  } catch (e) { m.textContent = e.message; m.className = "err"; }
+};
+document.getElementById("aiload").onclick = async () => {
+  const m = document.getElementById("aimsg");
+  try {
+    const r = await api("/api/ia/leer", { text: document.getElementById("aiin").value, kind: "perfil" });
+    const now = collect().settings;
+    const merged = Object.assign({}, now, r.settings);
+    render(merged);
+    const n = Object.keys(r.settings).length;
+    m.textContent = "Completé " + n + " campo(s) con la respuesta de tu IA. Revisalos abajo y tocá Guardar." + (r.errors && r.errors.length ? " Avisos: " + r.errors.join("; ") : "");
+    m.className = "ok";
+  } catch (e) { m.textContent = e.message; m.className = "err"; }
+};
+const status = (msg, cls) => { const s = document.getElementById("status"); s.textContent = msg; s.className = cls || ""; };
+document.getElementById("save").onclick = async () => {
+  status("Guardando...");
+  try {
+    const r = await fetch("/api/config", { method: "POST", headers: { "Content-Type": "application/json", "X-Config-Token": TOKEN }, body: JSON.stringify(collect()) });
+    const j = await r.json();
+    if (!r.ok) throw new Error(j.error || "Error al guardar");
+    await load();
+    const notes = (j.errors || []).concat(j.pending_errors || []);
+    status(notes.length ? "Guardado, con avisos:\n" + notes.join("\n") : "Guardado.", notes.length ? "err" : "ok");
+  } catch (e) { status(e.message, "err"); }
+};
+
+// --- paste and file imports ---
+const imp = (msg, cls) => { const n = document.getElementById("imp"); n.textContent = msg; n.className = cls || ""; };
+const NAMES = { first_name: "nombre", last_name: "apellido", email: "email", phone: "teléfono", city: "ciudad", state: "provincia", country: "país", linkedin_url: "LinkedIn", headline: "titular", current_company: "empresa actual", school_name: "institución", degree: "título", years_of_experience: "años de experiencia", english_level: "inglés", notice_period: "preaviso", salary_default: "pretensión" };
+function fill(found) {
+  const filled = [], kept = [];
+  for (const [k, v] of Object.entries(found || {})) {
+    const n = document.getElementById("f_" + k); if (!n || !("value" in n)) continue;
+    if (n.value.trim() && n.value.trim() !== v) { kept.push((NAMES[k] || k) + " (ya tenías \"" + n.value.trim() + "\"; detecté \"" + v + "\")"); continue; }
+    n.value = v; filled.push((NAMES[k] || k) + ": " + v);
+  }
+  return { filled, kept };
+}
+function report(found) {
+  const { filled, kept } = fill(found);
+  if (!filled.length && !kept.length) return imp("No detecté datos de contacto en ese texto.", "err");
+  imp((filled.length ? "Completé estos campos (revisalos y tocá Guardar):\n" + filled.join("\n") : "") + (kept.length ? "\n\nNo pisé lo que ya estaba cargado:\n" + kept.join("\n") : ""), "ok");
+}
+const post = async (path, body) => {
+  const r = await fetch(path, { method: "POST", headers: { "Content-Type": "application/json", "X-Config-Token": TOKEN }, body: JSON.stringify(body) });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || "No se pudo completar");
+  return j;
+};
+document.getElementById("detect").onclick = async () => {
+  const text = document.getElementById("paste").value;
+  if (!text.trim()) return imp("Primero pegá un texto en el cuadro.", "err");
+  try { report((await post("/api/extract", { text })).found); } catch (e) { imp(e.message, "err"); }
+};
+document.getElementById("ascv").onclick = () => {
+  const text = document.getElementById("paste").value.trim();
+  if (!text) return imp("Primero pegá el texto de tu CV en el cuadro.", "err");
+  const n = document.getElementById("f_cv_text"); if (!n) return;
+  n.value = text; imp("Listo: el texto quedó en \"Texto del CV\", más abajo. Tocá Guardar para conservarlo.", "ok");
+};
+let pickKind = null;
+const ACCEPT = { cv: ".docx,.txt,.md", perfil: ".json", historial: ".xlsx,.csv,.json", contexto: ".md,.txt,.docx" };
+document.querySelectorAll("[data-pick]").forEach((b) => { b.onclick = () => { pickKind = b.dataset.pick; const f = document.getElementById("file"); f.value = ""; f.accept = ACCEPT[pickKind]; f.click(); }; });
+const toBase64 = (buf) => { let s = ""; const u = new Uint8Array(buf); for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); };
+document.getElementById("file").onchange = async (ev) => {
+  const f = ev.target.files[0]; if (!f) return;
+  if (f.size > 15 * 1024 * 1024) return imp("Ese archivo supera 15 MB.", "err");
+  imp("Leyendo " + f.name + "...");
+  try {
+    const j = await post("/api/import", { kind: pickKind, name: f.name, base64: toBase64(await f.arrayBuffer()) });
+    if (pickKind === "cv") {
+      const n = document.getElementById("f_cv_text"); if (n) n.value = j.text;
+      const { filled, kept } = fill(j.found);
+      imp("Leí el CV (" + j.text.length + " caracteres) y lo puse en \"Texto del CV\"." + (filled.length ? "\nCompleté: " + filled.join("; ") : "") + (kept.length ? "\nNo pisé: " + kept.join("; ") : "") + "\nRevisá y tocá Guardar.", "ok");
+      return;
+    }
+    await load();
+    imp(j.message + ((j.errors || []).length ? "\nAvisos:\n" + j.errors.slice(0, 12).join("\n") : ""), (j.errors || []).length ? "err" : "ok");
+  } catch (e) { imp(e.message, "err"); }
+};
+load().catch((e) => status(e.message, "err"));
+</script>
+</body>
+</html>

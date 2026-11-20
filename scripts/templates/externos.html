@@ -1,0 +1,218 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job Seeker: avisos para revisar</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --text:#1c2430; --muted:#5b6675; --line:#d9dee6; --accent:#1f5fbf; --ok:#17794a; --warn:#9a6200; --err:#b3261e; --soft:#eef3fb; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#12161c; --card:#1b212a; --text:#e7ebf0; --muted:#9aa5b4; --line:#313a47; --accent:#6ea8ff; --ok:#5fd39a; --warn:#f0b755; --err:#ff8a80; --soft:#202a38; } }
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; background:var(--bg); color:var(--text); }
+  header { max-width:1100px; margin:0 auto; padding:20px 24px 4px; display:flex; align-items:baseline; gap:20px; flex-wrap:wrap; }
+  h1 { font-size:22px; margin:0; } h2 { font-size:16px; margin:0 0 4px; }
+  nav { display:flex; gap:16px; flex-wrap:wrap; } nav a { color:var(--accent); text-decoration:none; } nav a.here { color:var(--text); font-weight:600; }
+  main { max-width:1100px; margin:0 auto; padding:0 24px 60px; }
+  section { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px 20px; margin:16px 0; }
+  .sub { color:var(--muted); margin:0; font-size:14px; }
+  .tabs { display:flex; gap:8px; flex-wrap:wrap; margin:16px 0 0; }
+  .tabs button { font:inherit; padding:7px 14px; border-radius:20px; border:1px solid var(--line); background:var(--card); color:var(--text); cursor:pointer; }
+  .tabs button.on { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+  .item { display:grid; grid-template-columns:1fr auto; gap:12px; align-items:center; border-top:1px solid var(--line); padding:12px 0; }
+  .item:first-child { border-top:0; }
+  .role { font-weight:600; } .role a { color:var(--text); }
+  .meta { color:var(--muted); font-size:14px; }
+  .badge { display:inline-block; font-size:12px; padding:1px 8px; border-radius:10px; background:var(--soft); color:var(--accent); margin-left:6px; font-weight:500; }
+  .badge.sr { color:var(--warn); }
+  .acts { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+  button.b, a.b { font:inherit; font-size:14px; padding:6px 12px; border-radius:6px; border:1px solid var(--line); background:var(--card); color:var(--text); cursor:pointer; text-decoration:none; white-space:nowrap; }
+  button.b.primary { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+  details { margin-top:6px; } summary { cursor:pointer; color:var(--accent); font-size:14px; }
+  .answers { font-size:13px; color:var(--muted); margin:6px 0 0; padding-left:18px; }
+  .q { margin-top:8px; } .q label { display:block; font-size:14px; margin-bottom:3px; }
+  .q input, .q select { width:100%; padding:6px 8px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--text); font:inherit; font-size:14px; }
+  textarea.note { width:100%; min-height:44px; margin-top:8px; padding:6px 8px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--text); font:inherit; font-size:14px; }
+  .reasons { font-size:14px; margin:4px 0 0; }
+  .empty { color:var(--muted); padding:12px 0; }
+  #msg { min-height:20px; font-size:14px; } #msg.err { color:var(--err); } #msg.ok { color:var(--ok); }
+  @media (max-width:700px) { .item { grid-template-columns:1fr; } .acts { justify-content:flex-start; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Job Seeker</h1>
+  <nav><a href="/">Panel</a><a href="/config">Configuración</a><a class="here" href="/avisos">Avisos para revisar</a><a href="/tablero">Seguimiento</a></nav>
+</header>
+<main>
+  <section>
+    <h2>Avisos de LinkedIn sin solicitud sencilla</h2>
+    <p class="sub">Son los avisos con botón "Solicitar", que llevan al sitio de la empresa, y que pasaron tus filtros. Abrí el aviso, y elegí: <b>Para el agente</b> (el agente de Claude arranca en el momento y se postula en el sitio de la empresa), <b>Me postulé yo</b> (queda registrado y no vuelve a aparecer) o <b>Descartar</b>. El agente es opcional y necesita Claude Code instalado; sin él, te postulás vos desde el aviso y tocás <b>Me postulé yo</b>. Los marcados "sin revisar" pasaron el filtro de título, empresa, lugar y salario, pero todavía no se leyó la descripción: la próxima corrida la lee y, si no pasa, los descarta solo.</p>
+    <div class="tabs" id="tabs"></div>
+    <p id="msg"></p>
+  </section>
+  <section id="list"></section>
+</main>
+<script>
+const TOKEN = "__CONFIG_TOKEN__";
+const $ = (id) => document.getElementById(id);
+const api = async (path, body) => {
+  const opt = { headers: { "X-Config-Token": TOKEN } };
+  if (body !== undefined) { opt.method = "POST"; opt.headers["Content-Type"] = "application/json"; opt.body = JSON.stringify(body); }
+  const r = await fetch(path, opt);
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || "No se pudo completar");
+  return j;
+};
+const TABS = [
+  ["elegir", "Para elegir", ["pendiente", "sin revisar"]],
+  ["cola", "Esperan tu aprobación", null],
+  ["agente", "Para el agente", ["para el agente", "en cola"]],
+  ["hechos", "Postulados", ["postulado"]],
+  ["descartados", "Descartados", ["descartado"]],
+];
+let tab = "elegir", items = [], cola = [], pendingQ = 0;
+const fmt = (iso) => { try { return new Date(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" }); } catch { return ""; } };
+
+function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
+function btn(label, action, id, primary) {
+  const b = el("button", "b" + (primary ? " primary" : ""), label);
+  b.onclick = async () => {
+    b.disabled = true;
+    try {
+      const res = await api("/api/externos", { id, action });
+      const ag = res.agent || {};
+      const m = { agente: ag.started ? "El agente arrancó con este aviso. Seguí lo que hace en el Panel, en Actividad." : ag.running ? "El agente ya está trabajando: lo toma cuando termine el anterior." : ag.later ? "Hay otra tarea en curso: el agente arranca apenas termine." : "Listo: queda para el agente.", yo: "Registrado como postulado por vos.", descartar: "Descartado.", volver: "Volvió a Para elegir." }[action];
+      $("msg").textContent = m; $("msg").className = "ok"; await load();
+    } catch (e) { $("msg").textContent = e.message; $("msg").className = "err"; b.disabled = false; }
+  };
+  return b;
+}
+
+function render() {
+  const tabs = $("tabs"); tabs.textContent = "";
+  TABS.forEach(([k, label, sts]) => {
+    const n = sts ? items.filter((j) => sts.includes(j.status)).length : cola.length;
+    const b = el("button", k === tab ? "on" : "", label + " (" + n + ")");
+    b.onclick = () => { tab = k; render(); };
+    tabs.appendChild(b);
+  });
+  const sts = TABS.find((t) => t[0] === tab)[2];
+  if (!sts) return renderCola();
+  const rows = items.filter((j) => sts.includes(j.status)).sort((a, b) => (b.found_at || "").localeCompare(a.found_at || ""));
+  const list = $("list"); list.textContent = "";
+  if (!rows.length) {
+    list.appendChild(el("p", "empty", tab === "elegir" ? "No hay avisos para elegir. Aparecen después de cada simulación o postulación." : "Nada por acá."));
+    return;
+  }
+  if (tab === "agente") list.appendChild(el("p", "sub", "El agente trabaja estos avisos de a uno; el avance se ve en el Panel, en Actividad. Los que dicen \"en cola\" ya los preparó y esperan tu aprobación."));
+  rows.forEach((j) => {
+    const row = el("div", "item");
+    const info = el("div");
+    const r = el("div", "role");
+    const a = el("a", "", j.role || "(sin título)"); a.href = j.url; a.target = "_blank"; a.rel = "noopener noreferrer";
+    r.appendChild(a);
+    if (j.status === "sin revisar") r.appendChild(el("span", "badge sr", "sin revisar la descripción"));
+    if (j.status === "en cola") r.appendChild(el("span", "badge", "en cola, espera tu aprobación"));
+    info.appendChild(r);
+    info.appendChild(el("div", "meta", [j.company, j.location, j.salary ? "Salario: " + j.salary : "", "encontrado el " + fmt(j.found_at)].filter(Boolean).join(" · ")));
+    if (j.note && (j.status === "descartado" || j.status === "postulado")) info.appendChild(el("div", "meta", "Motivo: " + j.note));
+    row.appendChild(info);
+    const acts = el("div", "acts");
+    const open = el("a", "b", "Abrir aviso"); open.href = j.url; open.target = "_blank"; open.rel = "noopener noreferrer"; acts.appendChild(open);
+    if (["pendiente", "sin revisar"].includes(j.status)) {
+      acts.appendChild(btn("Para el agente", "agente", j.id, true));
+      acts.appendChild(btn("Me postulé yo", "yo", j.id));
+      acts.appendChild(btn("Descartar", "descartar", j.id));
+    } else if (j.status === "para el agente") {
+      acts.appendChild(btn("Me postulé yo", "yo", j.id));
+      acts.appendChild(btn("Volver a Para elegir", "volver", j.id));
+    } else if (j.status === "descartado") {
+      acts.appendChild(btn("Volver a Para elegir", "volver", j.id));
+    }
+    row.appendChild(acts);
+    list.appendChild(row);
+  });
+}
+
+function colaBtn(label, action, id, primary, noteBox, qBoxes) {
+  const b = el("button", "b" + (primary ? " primary" : ""), label);
+  b.onclick = async () => {
+    b.disabled = true;
+    try {
+      if (qBoxes && qBoxes.length && action !== "rechazar") {
+        const answers = {}; let missing = 0;
+        qBoxes.forEach((x) => { const v = x.value.trim(); if (v) answers[x.dataset.q] = v; else missing++; });
+        if (missing) throw new Error("Completá las respuestas que faltan antes de enviar.");
+        await api("/api/preguntas", { answers });
+      }
+      const res = await api("/api/cola", { id, action, note: noteBox ? noteBox.value : "" });
+      const ag = res.agent || {};
+      $("msg").textContent = action === "rechazar" ? "Descartada: no se envía." : res.site ? "Se abrió el sitio en la ventana de Chrome del programa. Iniciá sesión ahí y después tocá Aprobar y enviar." : res.linkedin ? "Listo: es de Solicitud sencilla, así que la próxima postulación (manual o automática) la vuelve a intentar sola." : action === "rechazar" ? "Rechazada: no se envía." : ag.started ? "Aprobada: el agente arrancó para enviarla. Seguí el avance en el Panel, en Actividad." : ag.running ? "Aprobada: el agente la envía cuando termine lo que está haciendo." : "Aprobada: el agente la envía apenas termine la tarea en curso.";
+      $("msg").className = "ok"; await load();
+    } catch (e) { $("msg").textContent = e.message; $("msg").className = "err"; b.disabled = false; }
+  };
+  return b;
+}
+
+function renderCola() {
+  const list = $("list"); list.textContent = "";
+  list.appendChild(el("p", "sub", "Postulaciones que quedaron preparadas sin enviar, con el motivo de cada una. Si faltan respuestas tuyas, completalas acá mismo (quedan guardadas para otros formularios). Si querés que el agente cambie algo, escribilo en la nota. Al aprobar, el agente vuelve a abrir el formulario y la envía; las de Solicitud sencilla las reintenta la próxima postulación. Si no te interesa, Descartar."));
+  if (!cola.length) { list.appendChild(el("p", "empty", "No hay postulaciones esperando tu aprobación.")); return; }
+  cola.forEach((q) => {
+    const row = el("div", "item");
+    const info = el("div");
+    const r = el("div", "role");
+    const a = el("a", "", q.role || "(sin título)"); a.href = q.url; a.target = "_blank"; a.rel = "noopener noreferrer"; r.appendChild(a);
+    if (q.state === "approved") r.appendChild(el("span", "badge sr", "aprobada; el agente todavía no pudo enviarla"));
+    info.appendChild(r);
+    info.appendChild(el("div", "meta", [q.company, q.ats ? "Sistema: " + q.ats : "", q.prepared_at ? "preparada el " + fmt(q.prepared_at) : ""].filter(Boolean).join(" · ")));
+    if (q.reasons.length) info.appendChild(el("div", "reasons", "Por qué no la envió sola: " + q.reasons.join("; ") + "."));
+    if (q.answers && typeof q.answers === "object" && Object.keys(q.answers).length) {
+      const d = el("details"); d.appendChild(el("summary", "", "Ver lo que completó (" + Object.keys(q.answers).length + ")"));
+      const ul = el("ul", "answers");
+      Object.entries(q.answers).forEach(([k, v]) => ul.appendChild(el("li", "", k + ": " + (typeof v === "string" ? v : JSON.stringify(v)))));
+      d.appendChild(ul); info.appendChild(d);
+    }
+    if (q.user_note) info.appendChild(el("div", "meta", "Tu nota: " + q.user_note));
+    if (q.notes && !q.linkedin) info.appendChild(el("div", "meta", "Nota del agente: " + q.notes.replace(/^externo #\d+\.?\s*/, "")));
+    // Questions the form asked that you had not answered: answer them right here.
+    const qBoxes = [];
+    (q.questions || []).forEach((pq) => {
+      const w = el("div", "q");
+      w.appendChild(el("label", "", pq.question));
+      let inp;
+      if (pq.options && pq.options.length) { inp = el("select"); inp.appendChild(el("option", "", "(elegí una opción)")); inp.firstChild.value = ""; pq.options.forEach((o) => { const op = el("option", "", o); op.value = o; inp.appendChild(op); }); }
+      else { inp = el("input"); inp.type = "text"; inp.placeholder = "Tu respuesta (queda guardada para otros formularios)"; }
+      inp.dataset.q = pq.id; qBoxes.push(inp); w.appendChild(inp); info.appendChild(w);
+    });
+    const note = el("textarea", "note"); note.placeholder = q.questions && q.questions.length ? "Nota para el agente (opcional)" : "Nota para el agente (opcional). Si su nota dice que faltan datos, escribilos acá: por ejemplo \"fecha de nacimiento: 01/02/1985; disponibilidad: Full Time\"";
+    if (!q.linkedin) info.appendChild(note);
+    row.appendChild(info);
+    const acts = el("div", "acts");
+    const open = el("a", "b", "Abrir formulario"); open.href = q.url; open.target = "_blank"; open.rel = "noopener noreferrer"; acts.appendChild(open);
+    const needsLogin = q.reasons.some((r) => /iniciar sesión/i.test(r));
+    if (q.linkedin) {
+      acts.appendChild(colaBtn(q.questions && q.questions.length ? "Responder y reintentar" : "Reintentar en la próxima corrida", "aprobar", q.id, true, null, qBoxes));
+    } else {
+      if (needsLogin) acts.appendChild(colaBtn("Iniciar sesión en el sitio", "sitio", q.id, false));
+      if (q.state === "pending") acts.appendChild(colaBtn(qBoxes.length ? "Responder y enviar" : "Aprobar y enviar", "aprobar", q.id, true, note, qBoxes));
+      else acts.appendChild(colaBtn("Reintentar envío", "reintentar", q.id, true, null, qBoxes));
+    }
+    acts.appendChild(colaBtn("Descartar", "rechazar", q.id, false, note));
+    row.appendChild(acts);
+    list.appendChild(row);
+  });
+}
+
+async function load() {
+  try {
+    items = (await api("/api/externos")).items || [];
+    try { const c = await api("/api/cola"); cola = c.items || []; pendingQ = c.pending_questions || 0; } catch { cola = []; }
+    render();
+  }
+  catch (e) { $("msg").textContent = e.message; $("msg").className = "err"; }
+}
+load();
+</script>
+</body>
+</html>

@@ -1,0 +1,46 @@
+{
+  "first_name": "",
+  "last_name": "",
+  "email": "",
+  "phone": "",
+  "city": "",
+  "country": "",
+  "linkedin_url": "",
+  "target_titles": [
+    "recursos humanos",
+    "hr business partner",
+    "talent acquisition"
+  ],
+  "avoid": [
+    "pasante",
+    "ventas"
+  ],
+  "description_avoid": [
+    "comisiones"
+  ],
+  "search_queries": [
+    "(\"HR Business Partner\" OR HRBP OR \"People Partner\") NOT (intern OR pasante)"
+  ],
+  "work_modes": [
+    "remote",
+    "hybrid"
+  ],
+  "posted_within": "week",
+  "search_location": "Argentina",
+  "avoid_companies": [],
+  "target_companies": [],
+  "company_types_preferred": [],
+  "company_types_avoid": [],
+  "years_of_experience": "",
+  "experience_years": {
+    "recursos humanos": ""
+  },
+  "english_level": "",
+  "salary_ars": "",
+  "salary_usd": "",
+  "cv_path": "",
+  "cv_path_en": "",
+  "cv_rules": {},
+  "senior_only": [],
+  "onsite_places": []
+}

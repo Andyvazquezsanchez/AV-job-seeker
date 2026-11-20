@@ -1,0 +1,255 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job Seeker: panel</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --text:#1c2430; --muted:#5b6675; --line:#d9dee6; --accent:#1f5fbf; --ok:#17794a; --warn:#9a6200; --err:#b3261e; --soft:#eef3fb; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#12161c; --card:#1b212a; --text:#e7ebf0; --muted:#9aa5b4; --line:#313a47; --accent:#6ea8ff; --ok:#5fd39a; --warn:#f0b755; --err:#ff8a80; --soft:#202a38; } }
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; background:var(--bg); color:var(--text); }
+  header { max-width:980px; margin:0 auto; padding:20px 24px 4px; display:flex; align-items:baseline; gap:20px; flex-wrap:wrap; }
+  h1 { font-size:22px; margin:0; } h2 { font-size:16px; margin:0 0 2px; }
+  nav { display:flex; gap:16px; } nav a { color:var(--accent); text-decoration:none; } nav a.here { color:var(--text); font-weight:600; }
+  main { max-width:980px; margin:0 auto; padding:0 24px 60px; }
+  section { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px 20px; margin:16px 0; }
+  .sub { color:var(--muted); margin:0; font-size:14px; }
+  .opt { display:inline-block; font-size:11px; font-weight:600; letter-spacing:.02em; text-transform:uppercase; color:var(--muted); border:1px solid var(--line); border-radius:999px; padding:1px 8px; margin-left:8px; vertical-align:middle; }
+  .opt.req { color:var(--accent); border-color:var(--accent); }
+  ul.checks { list-style:none; padding:0; margin:8px 0 0; display:grid; grid-template-columns:repeat(auto-fit, minmax(280px, 1fr)); gap:6px 24px; }
+  ul.checks li { display:flex; gap:8px; align-items:baseline; }
+  .dot { flex:0 0 10px; height:10px; border-radius:50%; background:var(--muted); position:relative; top:1px; }
+  .dot.ok { background:var(--ok); } .dot.warn { background:var(--warn); } .dot.err { background:var(--err); }
+  .steps { display:grid; gap:12px; }
+  .step { display:grid; grid-template-columns:34px 1fr auto; gap:14px; align-items:center; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 18px; }
+  .num { width:34px; height:34px; border-radius:50%; background:var(--soft); color:var(--accent); display:grid; place-items:center; font-weight:700; }
+  .acts { display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
+  button, a.btn { font:inherit; padding:8px 14px; border-radius:6px; border:1px solid var(--line); background:var(--card); color:var(--text); cursor:pointer; text-decoration:none; white-space:nowrap; }
+  button.primary, a.btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+  button.danger { background:var(--err); border-color:var(--err); color:#fff; font-weight:600; }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+  input.n { width:64px; padding:7px 8px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--text); font:inherit; }
+  label.n { color:var(--muted); font-size:13px; display:flex; gap:6px; align-items:center; }
+  #out { background:#0f141b; color:#dbe4ee; border-radius:8px; padding:12px 14px; font:13px/1.5 ui-monospace, Consolas, monospace; white-space:pre-wrap; overflow:auto; max-height:420px; min-height:70px; margin:10px 0 0; }
+  #jobhead { display:flex; gap:12px; align-items:center; justify-content:space-between; }
+  #jobstate { color:var(--muted); font-size:14px; } #jobstate.ok { color:var(--ok); } #jobstate.err { color:var(--err); }
+  .note { color:var(--muted); font-size:13px; margin:6px 0 0; }
+  a { color:var(--accent); }
+  .auto { display:grid; gap:10px; margin-top:10px; }
+  .auto .row { display:flex; gap:14px; align-items:center; flex-wrap:wrap; }
+  .auto input[type=time] { padding:6px 8px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--text); font:inherit; }
+  .auto label.d { display:flex; gap:4px; align-items:center; font-size:14px; }
+  #auto-state.ok { color:var(--ok); } #auto-state.err { color:var(--err); } #auto-state.warn { color:var(--warn); }
+  @media (max-width:640px) { .step { grid-template-columns:34px 1fr; } .acts { grid-column:1 / -1; justify-content:flex-start; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Job Seeker</h1>
+  <nav><a class="here" href="/">Panel</a><a href="/config">Configuración</a><a href="/avisos">Avisos para revisar</a><a href="/tablero">Seguimiento</a></nav>
+</header>
+<main>
+  <section>
+    <h2 id="hello">Estado</h2>
+    <p class="sub" id="today">Cargando...</p>
+    <ul class="checks" id="checks"></ul>
+  </section>
+
+  <div class="steps">
+    <div class="step"><div class="num">1</div>
+      <div><h2>Cargar tus datos y qué buscás<span class="opt req">Necesario</span></h2><p class="sub">Lo único obligatorio es tu nombre, tu email y los puestos que buscás. Lo demás (respuestas para formularios, CV, empresas a evitar) es opcional, pero mejora los resultados. Podés usar el asistente con preguntas, pegar texto o importar archivos.</p></div>
+      <div class="acts"><a class="btn" href="/asistente">Asistente con preguntas</a><a class="btn primary" href="/config">Abrir configuración</a></div></div>
+
+    <div class="step"><div class="num">2</div>
+      <div><h2>Iniciar sesión en LinkedIn<span class="opt req">Necesario</span></h2><p class="sub">Abre una ventana de Chrome propia del programa. Escribís tu contraseña ahí; el programa no la ve ni la guarda. Se hace una sola vez.</p></div>
+      <div class="acts"><button data-run="login">Iniciar sesión en LinkedIn</button></div></div>
+
+    <div class="step"><div class="num">3</div>
+      <div><h2>Simular<span class="opt">Recomendado</span></h2><p class="sub">Busca avisos con tus filtros y muestra a cuáles se postularía y cuáles descarta. No envía nada. Conviene hacerlo la primera vez y cada vez que cambies tus filtros.</p></div>
+      <div class="acts"><label class="n">Hasta <input class="n" id="max-sim" type="number" min="1" max="25" value="10"></label><button class="primary" data-run="simulate" data-max="max-sim">Simular</button></div></div>
+
+    <div class="step"><div class="num">4</div>
+      <div><h2>Postular ahora</h2><p class="sub">Envía postulaciones reales a los avisos con solicitud sencilla de LinkedIn, respetando horario, tope diario y pausas. Los avisos que te mandan a la página de la empresa no se envían: quedan en "Avisos para revisar" para que los abras vos o se los pases al agente de IA. Las que tengan preguntas sin respuesta tuya tampoco se envían.</p></div>
+      <div class="acts"><label class="n">Hasta <input class="n" id="max-apply" type="number" min="1" max="25" value="5"></label><button id="apply">Postular ahora</button><button class="danger" id="apply-yes" hidden>Confirmar: enviar postulaciones reales</button><button id="apply-no" hidden>Cancelar</button></div></div>
+
+    <div class="step" style="grid-template-columns:34px 1fr"><div class="num">5</div>
+      <div><h2>Postulación automática<span class="opt">Opcional</span></h2>
+        <p class="sub">Windows abre el programa solo en los días y horarios que elijas, y hace lo mismo que "Postular ahora": busca, filtra, se postula y guarda los avisos externos para el agente. Respeta tu horario, tu tope diario y las pausas. La computadora tiene que estar prendida y con tu sesión de Windows abierta; si estaba apagada a esa hora, corre apenas la prendas (dentro de tu horario).</p>
+        <p class="sub" id="auto-state">Cargando...</p>
+        <div class="auto">
+          <div class="row"><span class="sub">Horarios:</span><input type="time" id="t1"><input type="time" id="t2"><input type="time" id="t3"><span class="sub">(el 2 y el 3 son opcionales)</span></div>
+          <div class="row" id="days"><span class="sub">Días:</span></div>
+          <div class="row"><label class="n">Hasta <input class="n" id="auto-max" type="number" min="1" max="25" value="5"> postulaciones por corrida</label></div>
+          <div class="row"><button class="primary" id="auto-on">Activar o guardar cambios</button><button id="auto-off">Desactivar</button><button id="auto-log">Ver registro de las corridas</button></div>
+        </div></div></div>
+
+    <div class="step"><div class="num">6</div>
+      <div><h2>Leer mi planilla de seguimiento<span class="opt">Opcional</span></h2><p class="sub" id="sync-sub">Solo si llevás tu propio Excel o CSV con postulaciones: lo lee para no repetir avisos a los que te postulaste por otros medios. Nunca lo modifica. Si no tenés planilla, no pasa nada: el programa anota todo lo que envía y lo ves en Tablero o con Exportar.</p></div>
+      <div class="acts"><button id="sync">Leer planilla ahora</button></div></div>
+
+    <div class="step"><div class="num">7</div>
+      <div><h2>Exportar<span class="opt">Opcional</span></h2><p class="sub">Tu configuración (para copiarla a otra computadora) o todas las postulaciones registradas, para abrir en Excel.</p></div>
+      <div class="acts"><button data-export="perfil">Configuración (.json)</button><button data-export="historial">Postulaciones (.csv)</button></div></div>
+  </div>
+
+  <section>
+    <div id="jobhead"><div><h2 id="jobtitle">Actividad</h2><span id="jobstate">Sin tareas en curso.</span></div>
+      <div class="acts"><button id="stop" hidden>Detener</button><button data-run="close">Cerrar la ventana de Chrome del programa</button></div></div>
+    <pre id="out" aria-live="polite"></pre>
+    <p class="note">Este panel funciona solo en esta computadora. Para cerrarlo, cerrá la ventana negra que se abrió junto con él.</p>
+  </section>
+</main>
+<script>
+const TOKEN = "__CONFIG_TOKEN__";
+const $ = (id) => document.getElementById(id);
+const api = async (path, body) => {
+  const opt = { headers: { "X-Config-Token": TOKEN } };
+  if (body !== undefined) { opt.method = "POST"; opt.headers["Content-Type"] = "application/json"; opt.body = JSON.stringify(body); }
+  const r = await fetch(path, opt);
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || "No se pudo completar");
+  return j;
+};
+const out = $("out");
+const say = (text) => { out.textContent = text; };
+const add = (text) => { out.textContent += text; out.scrollTop = out.scrollHeight; };
+let jobId = 0, seen = 0, timer = null, running = false;
+
+function check(cls, text, link) {
+  const li = document.createElement("li");
+  const d = document.createElement("span"); d.className = "dot " + cls; li.appendChild(d);
+  const s = document.createElement("span"); s.textContent = text + " "; li.appendChild(s);
+  if (link) { const a = document.createElement("a"); a.href = link[0]; a.textContent = link[1]; s.appendChild(a); }
+  return li;
+}
+
+async function status() {
+  const s = await api("/api/status");
+  $("hello").textContent = s.name ? "Hola, " + s.name.split(" ")[0] : "Estado";
+  const t = s.today;
+  $("today").textContent = !s.has_user ? "Empezá por el paso 1: cargá tus datos."
+    : t ? t.message + (t.cap !== null && t.allowed ? "" : "") + " Postulaciones registradas en total: " + s.applications + "."
+    : "Postulaciones registradas en total: " + s.applications + ".";
+  const ul = $("checks"); ul.textContent = "";
+  ul.appendChild(check("ok", s.database.kind === "local" ? "Base de datos lista (archivo local en esta computadora)." : "Base de datos externa conectada."));
+  ul.appendChild(s.has_user ? check("ok", "Tus datos están cargados.") : check("err", "Faltan tus datos.", ["/config", "Cargarlos"]));
+  ul.appendChild(s.has_targets ? check("ok", "Puestos objetivo definidos.") : check("err", "Falta definir qué puestos buscás.", ["/config", "Definirlos"]));
+  ul.appendChild(s.chrome ? check("ok", "Google Chrome encontrado.") : check("err", "No encontré Google Chrome. Instalalo para poder postular."));
+  ul.appendChild(s.claude ? check("ok", "Claude Code encontrado: el agente puede postularse a los avisos externos.") : check("warn", "No encontré Claude Code: sin él, el agente no puede postularse a los avisos externos (opcional)."));
+  ul.appendChild(!s.tracking.file ? check("warn", "Planilla de seguimiento sin conectar (opcional).", ["/config", "Conectarla"])
+    : s.tracking.exists ? check("ok", "Planilla de seguimiento conectada.") : check("err", "No encuentro tu planilla en la ruta indicada.", ["/config", "Revisar"]));
+  ul.appendChild(s.pending_questions ? check("warn", s.pending_questions + " pregunta(s) de formularios esperan tu respuesta.", ["/config", "Responder"]) : check("ok", "Sin preguntas pendientes."));
+  if (s.externos && s.externos.elegir) ul.appendChild(check("warn", s.externos.elegir + " aviso(s) sin solicitud sencilla esperan que elijas qué hacer.", ["/avisos", "Revisarlos"]));
+  if (s.externos && s.externos.agente) ul.appendChild(check("ok", s.externos.agente + " aviso(s) en manos del agente."));
+  if (s.review_queue) ul.appendChild(check("warn", s.review_queue + " postulación(es) preparadas esperan tu aprobación.", ["/avisos", "Revisarlas"]));
+  if (s.job && s.job.id && s.job.running && !running) follow(s.job.id, 0, s.job.title);
+}
+
+function setRunning(on) {
+  running = on;
+  document.querySelectorAll("[data-run], #apply, #sync").forEach((b) => { b.disabled = on; });
+  $("stop").hidden = !on;
+}
+
+async function poll() {
+  try {
+    const j = await api("/api/job?since=" + seen);
+    if (j.id !== jobId) return;
+    if (j.lines.length) { add(j.lines.join("\n") + "\n"); seen = j.total; }
+    const st = $("jobstate");
+    if (j.running) { st.textContent = "En curso..." + (j.partial ? " " + j.partial.slice(-80) : ""); st.className = ""; timer = setTimeout(poll, 1200); return; }
+    st.textContent = j.stopped ? "Detenida." : j.exitCode === 0 ? "Terminó bien." : "Terminó con un aviso (leé el detalle abajo).";
+    st.className = j.stopped ? "" : j.exitCode === 0 ? "ok" : "err";
+    setRunning(false); status().catch(() => {});
+  } catch (e) { $("jobstate").textContent = "Se perdió la conexión con el panel. Volvé a abrirlo."; $("jobstate").className = "err"; setRunning(false); }
+}
+
+function follow(id, from, title) {
+  jobId = id; seen = from; clearTimeout(timer);
+  $("jobtitle").textContent = title || "Actividad"; say(""); setRunning(true); poll();
+}
+
+async function run(action, max, confirm) {
+  try {
+    const r = await api("/api/run", { action, max, confirm });
+    const titles = { login: "Iniciar sesión en LinkedIn", simulate: "Simulación", apply: "Postulación real", close: "Cerrar ventana", agent: "Agente" };
+    follow(r.id, 0, titles[action]);
+  } catch (e) { $("jobstate").textContent = e.message; $("jobstate").className = "err"; }
+}
+
+document.querySelectorAll("[data-run]").forEach((b) => { b.onclick = () => run(b.dataset.run, b.dataset.max ? $(b.dataset.max).value : undefined); });
+const confirmUi = (on) => { $("apply").hidden = on; $("apply-yes").hidden = !on; $("apply-no").hidden = !on; };
+$("apply").onclick = () => confirmUi(true);
+$("apply-no").onclick = () => confirmUi(false);
+$("apply-yes").onclick = () => { confirmUi(false); run("apply", $("max-apply").value, true); };
+$("stop").onclick = () => api("/api/stop", {}).catch(() => {});
+
+$("sync").onclick = async () => {
+  $("jobtitle").textContent = "Leer planilla de seguimiento"; say("Leyendo tu planilla...\n"); $("jobstate").textContent = ""; $("sync").disabled = true;
+  try {
+    const r = await api("/api/sync", {});
+    add("Archivo: " + r.file + "\nFilas leídas: " + r.read + "\nNuevas en el programa: " + r.inserted + "\nEstados actualizados: " + r.updated + "\nSin cambios: " + r.unchanged + "\n\nTu planilla no fue modificada.\n");
+    $("jobstate").textContent = "Terminó bien."; $("jobstate").className = "ok"; status().catch(() => {});
+  } catch (e) { add(e.message + "\n"); $("jobstate").textContent = "No se pudo leer."; $("jobstate").className = "err"; }
+  $("sync").disabled = running;
+};
+
+document.querySelectorAll("[data-export]").forEach((b) => { b.onclick = async () => {
+  try {
+    const r = await api("/api/export?what=" + b.dataset.export);
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob([r.content], { type: "application/octet-stream" }));
+    a.download = r.filename; document.body.appendChild(a); a.click(); a.remove();
+  } catch (e) { $("jobstate").textContent = e.message; $("jobstate").className = "err"; }
+}; });
+
+const DAYS = [["lun", "Lun"], ["mar", "Mar"], ["mie", "Mié"], ["jue", "Jue"], ["vie", "Vie"], ["sab", "Sáb"], ["dom", "Dom"]];
+DAYS.forEach(([k, v]) => {
+  const l = document.createElement("label"); l.className = "d";
+  const c = document.createElement("input"); c.type = "checkbox"; c.value = k; c.id = "d-" + k;
+  l.appendChild(c); l.appendChild(document.createTextNode(v)); $("days").appendChild(l);
+});
+const fmtDate = (iso) => { try { return new Date(iso).toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" }); } catch { return iso; } };
+let autoLog = "";
+async function autoStatus() {
+  const a = await api("/api/auto");
+  const s = a.settings;
+  ["t1", "t2", "t3"].forEach((id, i) => { $(id).value = s.times[i] || ""; });
+  DAYS.forEach(([k]) => { $("d-" + k).checked = s.days.includes(k); });
+  $("auto-max").value = s.max;
+  autoLog = a.log || "";
+  const st = $("auto-state");
+  const names = Object.fromEntries(DAYS);
+  let text, cls = "";
+  if (!a.windows) { text = "La programación automática funciona solo en Windows."; cls = "warn"; }
+  else if (s.enabled && a.installed === false) { text = "Estaba activada, pero la tarea no aparece en Windows. Tocá Activar para crearla de nuevo."; cls = "err"; }
+  else if (s.enabled) { text = "Activada: " + s.days.map((d) => names[d]).join(", ") + " a las " + s.times.join(", ") + ", hasta " + s.max + " por corrida."; cls = "ok"; }
+  else text = "Desactivada.";
+  if (a.running) text += " Hay una corrida automática en curso ahora.";
+  if (a.last) text += " Última corrida: " + fmtDate(a.last.started) + ", " + a.last.result;
+  st.textContent = text; st.className = cls;
+}
+$("auto-on").onclick = async () => {
+  const times = ["t1", "t2", "t3"].map((id) => $(id).value).filter(Boolean);
+  const days = DAYS.map(([k]) => k).filter((k) => $("d-" + k).checked);
+  $("auto-state").textContent = "Guardando en Windows..."; $("auto-state").className = "";
+  try { await api("/api/auto", { enable: true, times, days, max: $("auto-max").value }); await autoStatus(); }
+  catch (e) { $("auto-state").textContent = e.message; $("auto-state").className = "err"; }
+};
+$("auto-off").onclick = async () => {
+  try { await api("/api/auto", { enable: false }); await autoStatus(); }
+  catch (e) { $("auto-state").textContent = e.message; $("auto-state").className = "err"; }
+};
+$("auto-log").onclick = async () => {
+  await autoStatus().catch(() => {});
+  if (running) return;
+  $("jobtitle").textContent = "Registro de las corridas automáticas"; $("jobstate").textContent = ""; $("jobstate").className = "";
+  say(autoLog || "Todavía no hubo ninguna corrida automática.\n"); out.scrollTop = out.scrollHeight;
+};
+
+status().catch((e) => { $("today").textContent = e.message; });
+autoStatus().catch((e) => { $("auto-state").textContent = e.message; });
+</script>
+</body>
+</html>

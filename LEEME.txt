@@ -1,0 +1,96 @@
+JOB SEEKER
+==========
+
+Programa para buscar avisos, postularte y llevar el seguimiento de tu busqueda laboral
+desde tu propia computadora. No necesita cuentas, servidores ni conocimientos tecnicos.
+
+
+COMO EMPEZAR EN WINDOWS
+-----------------------
+
+1. Descomprimi esta carpeta completa en un lugar fijo, por ejemplo en Documentos.
+   (No la ejecutes desde adentro del .zip.)
+
+2. Doble clic en "Instalar.bat".
+   Si Windows muestra un aviso azul ("Windows protegio su PC"), elegi
+   "Mas informacion" y despues "Ejecutar de todas formas". Aparece porque el
+   archivo llego desde internet; es un archivo de texto y lo podes leer con el
+   Bloc de notas antes de ejecutarlo.
+
+3. Listo. Queda un acceso directo "Job Seeker" en el Escritorio.
+   Cada vez que quieras usar el programa, abri ese acceso directo.
+
+
+PRIMEROS PASOS (la primera vez)
+-------------------------------
+
+1. En el panel, "Abrir configuracion": carga tu nombre, tu email y los puestos
+   que buscas. Toca "Guardar".
+2. "Iniciar sesion en LinkedIn": se abre una ventana de Chrome del programa;
+   entra con tu usuario y contrasena como siempre.
+3. "Simular": muestra a que avisos se postularia y por que descarta los otros.
+   No envia nada. Ajusta tus filtros hasta que te convenza.
+4. "Postular ahora" con 1 o 2 avisos, y revisa en LinkedIn que haya salido bien.
+5. Cuando confies en lo que elige: activa la "Postulacion automatica" (paso 5
+   del panel) y revisa cada tanto la pestana "Avisos para revisar".
+
+Necesitas tener Google Chrome instalado.
+
+Los avisos con "Solicitud sencilla" de LinkedIn se postulan solos. Los que
+llevan al sitio de la empresa (boton "Solicitar") quedan en la pestana
+"Avisos para revisar" para que los abras vos.
+
+Opcional: para que un agente de IA se postule en esos sitios, hace falta
+Claude Code. Como instalarlo esta en la guia completa, capitulo 13.
+
+
+EN MAC O LINUX
+--------------
+
+   sh instalar.sh      (una vez)
+   sh abrir.sh         (cada vez que lo uses)
+
+Hace falta Node.js 22 o superior (https://nodejs.org).
+
+
+DONDE ESTAN TUS DATOS
+---------------------
+
+Todo queda en esta carpeta, en tu computadora:
+
+   datos\              tu base de datos y el registro de postulaciones automaticas
+   config\             archivos que quieras importar o exportar
+   .browser-profile\   la sesion de LinkedIn del programa
+
+Para hacer una copia de seguridad, copia la carpeta "datos" con el programa cerrado.
+Para desinstalar, borra esta carpeta y el acceso directo del Escritorio.
+
+
+MAS INFORMACION
+---------------
+
+   Job-Seeker-Como-comenzar.pdf   lo indispensable para empezar, en pocas paginas
+   Job-Seeker-Guia-completa.pdf   guia completa para consultar: explicaciones,
+                                  problemas frecuentes y glosario
+   MANUAL.md    manual completo en texto, con la referencia de comandos
+   AGENTS.md    reglas para usarlo con un agente de IA (uso avanzado)
+   LICENSE      licencia: gratis para uso personal, prohibida la venta
+
+Lo opcional (postulacion automatica, planilla de seguimiento propia, agente
+de IA, foto de perfil) se puede saltear: el programa funciona igual.
+
+
+GRACIAS
+-------
+
+Gracias por usar Job Seeker. Ojala te ayude a llegar a la entrevista que
+estas esperando.
+
+Job Seeker fue desarrollado por Andy Vazquez Sanchez a partir del proyecto
+de codigo abierto job-seeker de German Aliprandi (licencia MIT).
+Es gratuito para uso personal y esta prohibido venderlo o usarlo con fines
+comerciales sin permiso del autor (detalle en el archivo LICENSE).
+Descargas y nuevas versiones:
+https://github.com/Andyvazquezsanchez/AV-job-seeker
+Para contactarme o contarme como te fue:
+https://www.linkedin.com/in/avazquezsanchez

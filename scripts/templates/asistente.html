@@ -1,0 +1,349 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job Seeker: asistente</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --text:#1c2430; --muted:#5b6675; --line:#d9dee6; --accent:#1f5fbf; --ok:#17794a; --warn:#9a6200; --err:#b3261e; --soft:#eef3fb; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#12161c; --card:#1b212a; --text:#e7ebf0; --muted:#9aa5b4; --line:#313a47; --accent:#6ea8ff; --ok:#5fd39a; --warn:#f0b755; --err:#ff8a80; --soft:#202a38; } }
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; background:var(--bg); color:var(--text); }
+  header { max-width:820px; margin:0 auto; padding:20px 24px 4px; display:flex; align-items:baseline; gap:20px; flex-wrap:wrap; }
+  h1 { font-size:22px; margin:0; } h2 { font-size:18px; margin:0 0 4px; }
+  nav { display:flex; gap:16px; flex-wrap:wrap; } nav a { color:var(--accent); text-decoration:none; }
+  main { max-width:820px; margin:0 auto; padding:0 24px 60px; }
+  section { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:18px 22px; margin:16px 0; }
+  .sub { color:var(--muted); margin:0 0 12px; font-size:14px; }
+  .progress { height:6px; background:var(--line); border-radius:3px; overflow:hidden; margin:14px 0 0; }
+  .progress div { height:100%; background:var(--accent); width:0; transition:width .2s; }
+  .count { color:var(--muted); font-size:13px; margin-top:6px; }
+  label.f { display:block; font-weight:600; font-size:14px; margin:12px 0 4px; }
+  .hint { color:var(--muted); font-size:13px; margin:2px 0 0; }
+  input[type=text], input:not([type]), select, textarea { width:100%; padding:8px 10px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--text); font:inherit; }
+  textarea { min-height:90px; } textarea.big { min-height:200px; }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:0 14px; }
+  .opts { display:grid; grid-template-columns:1fr 1fr; gap:4px 14px; margin-top:6px; }
+  .opts label { display:flex; gap:8px; align-items:flex-start; font-size:14px; }
+  .opts.one { grid-template-columns:1fr; }
+  .tag { display:inline-block; font-size:12px; padding:1px 8px; border-radius:10px; background:var(--soft); color:var(--accent); margin-left:6px; }
+  .nav { display:flex; gap:8px; margin-top:18px; justify-content:space-between; flex-wrap:wrap; }
+  button { font:inherit; padding:8px 16px; border-radius:6px; border:1px solid var(--line); background:var(--card); color:var(--text); cursor:pointer; }
+  button.primary { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+  #msg { min-height:20px; font-size:14px; white-space:pre-line; } #msg.err { color:var(--err); } #msg.ok { color:var(--ok); }
+  .summary { font-size:14px; } .summary dt { font-weight:600; margin-top:8px; } .summary dd { margin:0 0 0 0; color:var(--muted); }
+  .step { display:none; } .step.on { display:block; }
+  @media (max-width:640px) { .grid2, .opts { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>Job Seeker</h1>
+  <nav><a href="/">Panel</a><a href="/config">Configuración</a><a href="/avisos">Avisos para revisar</a><a href="/tablero">Seguimiento</a></nav>
+</header>
+<main>
+  <section>
+    <h2>Asistente: armá tu configuración respondiendo preguntas</h2>
+    <p class="sub">Es opcional y lleva unos minutos. Si tenés tu CV, pegalo al principio: el asistente lo usa para sugerirte el área y los puestos. Todo lo que respondas se puede cambiar después en Configuración. Nada se guarda hasta el último paso.</p>
+    <div class="progress"><div id="bar"></div></div>
+    <div class="count" id="count"></div>
+  </section>
+
+  <section class="step" data-title="Tu CV">
+    <h2>1. Tu CV (opcional)</h2>
+    <p class="sub">Abrí tu CV, seleccioná todo el texto (Ctrl+A), copialo (Ctrl+C) y pegalo acá (Ctrl+V). También podés subirlo en Word (.docx). Si no lo tenés a mano, seguí con "Siguiente".</p>
+    <textarea id="cv" class="big" placeholder="Pegá acá el texto de tu CV"></textarea>
+    <p class="hint">O subí el archivo: <input type="file" id="cvfile" accept=".docx,.txt,.md"></p>
+  </section>
+
+  <section class="step" data-title="Tus datos">
+    <h2>2. Tus datos de contacto</h2>
+    <p class="sub">Se usan para completar formularios. Nombre y email son obligatorios.</p>
+    <div class="grid2">
+      <div><label class="f" for="first_name">Nombre</label><input id="first_name"></div>
+      <div><label class="f" for="last_name">Apellido</label><input id="last_name"></div>
+      <div><label class="f" for="email">Email</label><input id="email"></div>
+      <div><label class="f" for="phone">Teléfono (con código de país)</label><input id="phone" placeholder="+54 11 ..."></div>
+      <div><label class="f" for="city">Ciudad</label><input id="city"></div>
+      <div><label class="f" for="country">País</label><input id="country"></div>
+    </div>
+    <label class="f" for="linkedin_url">Tu perfil de LinkedIn (opcional)</label><input id="linkedin_url" placeholder="https://www.linkedin.com/in/...">
+  </section>
+
+  <section class="step" data-title="Área">
+    <h2>3. En qué área buscás trabajo</h2>
+    <p class="sub">Elegí la más cercana. Si tu área no está, elegí "Otra" y en el paso siguiente escribís tus puestos.</p>
+    <div class="opts one" id="areas"></div>
+  </section>
+
+  <section class="step" data-title="Puestos">
+    <h2>4. Qué puestos te interesan</h2>
+    <p class="sub">Marcá los que te sirven. Un aviso se tiene en cuenta si su título contiene alguno. Los que aparecen en tu CV ya vienen marcados.</p>
+    <div class="opts" id="titles"></div>
+    <label class="f" for="more_titles">Otros puestos (uno por línea)</label>
+    <textarea id="more_titles" placeholder="Por ejemplo: analista de compras"></textarea>
+  </section>
+
+  <section class="step" data-title="Nivel">
+    <h2>5. Qué nivel buscás</h2>
+    <p class="sub">Sirve para descartar avisos por debajo de lo que buscás.</p>
+    <div class="opts one">
+      <label><input type="radio" name="level" value="junior"> Junior o primeros trabajos</label>
+      <label><input type="radio" name="level" value="ssr"> Semi senior</label>
+      <label><input type="radio" name="level" value="sr" checked> Senior</label>
+      <label><input type="radio" name="level" value="lead"> Liderazgo (jefe, coordinador, gerente)</label>
+    </div>
+  </section>
+
+  <section class="step" data-title="Dónde">
+    <h2>6. Dónde y cómo querés trabajar</h2>
+    <label class="f">Modalidad</label>
+    <div class="opts">
+      <label><input type="checkbox" name="mode" value="remote" checked> Remoto</label>
+      <label><input type="checkbox" name="mode" value="hybrid" checked> Híbrido</label>
+      <label><input type="checkbox" name="mode" value="onsite"> Presencial</label>
+    </div>
+    <label class="f" for="search_location">País o ciudad donde buscar avisos</label><input id="search_location" placeholder="Argentina">
+    <label class="f" for="onsite_places">Para avisos presenciales o híbridos: lugares a los que podés ir (uno por línea)</label>
+    <textarea id="onsite_places" placeholder="caba&#10;vicente lopez&#10;san isidro"></textarea>
+    <p class="hint">Los avisos remotos pasan siempre. Vacío: no se filtra por lugar. "caba" incluye barrios y comunas.</p>
+    <label class="f" for="posted_within">Antigüedad de los avisos</label>
+    <select id="posted_within"><option value="day">Último día</option><option value="week" selected>Última semana</option><option value="month">Último mes</option></select>
+  </section>
+
+  <section class="step" data-title="Condiciones">
+    <h2>7. Condiciones y datos para formularios</h2>
+    <p class="sub">Todo es opcional. Lo que no completes, el programa te lo pregunta cuando un formulario lo pida.</p>
+    <div class="grid2">
+      <div><label class="f" for="salary_min_usd">Salario mínimo en USD (bruto por mes)</label><input id="salary_min_usd" inputmode="numeric"><p class="hint">Descarta avisos que publican un sueldo menor.</p></div>
+      <div><label class="f" for="salary_min_ars">Salario mínimo en pesos (bruto por mes)</label><input id="salary_min_ars" inputmode="numeric"></div>
+      <div><label class="f" for="salary_ars">Pretensión salarial en pesos</label><input id="salary_ars" placeholder="Para responder formularios"></div>
+      <div><label class="f" for="salary_usd">Pretensión salarial en USD</label><input id="salary_usd"></div>
+      <div><label class="f" for="years_of_experience">Años de experiencia</label><input id="years_of_experience" inputmode="numeric"></div>
+      <div><label class="f" for="english_level">Nivel de inglés</label><select id="english_level"><option value="">(sin definir)</option><option>Básico</option><option>Intermedio</option><option>Avanzado</option><option>Bilingüe</option></select></div>
+      <div><label class="f" for="notice_period">Disponibilidad para empezar</label><select id="notice_period"><option value="">(sin definir)</option><option>Inmediata</option><option>15 días</option><option>30 días</option><option>A convenir</option></select></div>
+    </div>
+  </section>
+
+  <section class="step" data-title="Lo que no querés">
+    <h2>8. Lo que no querés</h2>
+    <p class="sub">Marcá lo que querés descartar. Los avisos con esas palabras en el título o en la descripción no se tienen en cuenta.</p>
+    <div class="opts" id="avoids"></div>
+    <label class="f" for="more_avoid">Otras palabras o frases a evitar (una por línea)</label>
+    <textarea id="more_avoid"></textarea>
+    <label class="f" for="avoid_companies">Empresas a las que no querés postularte (una por línea)</label>
+    <textarea id="avoid_companies" placeholder="Por ejemplo, tu empleador actual"></textarea>
+  </section>
+
+  <section class="step" data-title="Contexto">
+    <h2>9. Contalo con tus palabras</h2>
+    <p class="sub">Opcional. Qué buscás, qué te importa, qué experiencia querés destacar, qué no te interesa. Lo usa el agente de IA para entender mejor cada aviso y para redactar respuestas.</p>
+    <textarea id="context" class="big" placeholder="Por ejemplo: busco un rol de liderazgo en RRHH, en empresas medianas o grandes. Me interesa mucho cultura y desarrollo; no quiero puestos de liquidación de sueldos."></textarea>
+  </section>
+
+  <section class="step" data-title="Resumen">
+    <h2>10. Revisá y guardá</h2>
+    <p class="sub">Esto es lo que se va a guardar. Los campos que no aparecen quedan como estaban.</p>
+    <dl class="summary" id="summary"></dl>
+  </section>
+
+  <section>
+    <p id="msg"></p>
+    <div class="nav"><button id="prev">Anterior</button><div><button id="skip">Salir sin guardar</button> <button class="primary" id="next">Siguiente</button></div></div>
+  </section>
+</main>
+<script>
+const TOKEN = "__CONFIG_TOKEN__";
+const $ = (id) => document.getElementById(id);
+const api = async (path, body) => {
+  const opt = { headers: { "X-Config-Token": TOKEN } };
+  if (body !== undefined) { opt.method = "POST"; opt.headers["Content-Type"] = "application/json"; opt.body = JSON.stringify(body); }
+  const r = await fetch(path, opt);
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || "No se pudo completar");
+  return j;
+};
+const lines = (t) => String(t || "").split("\n").map((x) => x.trim()).filter(Boolean);
+const uniq = (a) => [...new Set(a.filter(Boolean))];
+const say = (t, cls) => { $("msg").textContent = t || ""; $("msg").className = cls || ""; };
+function el(tag, attrs, kids) { const e = document.createElement(tag); Object.entries(attrs || {}).forEach(([k, v]) => { if (k === "text") e.textContent = v; else e.setAttribute(k, v); }); (kids || []).forEach((k) => e.appendChild(k)); return e; }
+
+let PRESETS = {}, CURRENT = {}, DETECTED = [], area = "", cvHits = [];
+const steps = [...document.querySelectorAll(".step")];
+let at = 0;
+
+function show(i) {
+  at = Math.max(0, Math.min(steps.length - 1, i));
+  steps.forEach((s, k) => s.classList.toggle("on", k === at));
+  $("bar").style.width = Math.round((at + 1) / steps.length * 100) + "%";
+  $("count").textContent = "Paso " + (at + 1) + " de " + steps.length + ": " + steps[at].dataset.title;
+  $("prev").disabled = at === 0;
+  $("next").textContent = at === steps.length - 1 ? "Guardar" : "Siguiente";
+  if (steps[at].dataset.title === "Puestos") renderTitles();
+  if (steps[at].dataset.title === "Lo que no querés") renderAvoids();
+  if (steps[at].dataset.title === "Resumen") renderSummary();
+  window.scrollTo(0, 0);
+}
+
+function renderAreas() {
+  const box = $("areas"); box.textContent = "";
+  Object.entries(PRESETS).concat([["otra", { label: "Otra" }]]).forEach(([id, p]) => {
+    const r = el("input", { type: "radio", name: "area", value: id });
+    if (id === area) r.checked = true;
+    r.onchange = () => { area = id; };
+    const lab = el("label", {}, [r, document.createTextNode(p.label)]);
+    const d = DETECTED.find((a) => a.id === id);
+    if (d) lab.appendChild(el("span", { class: "tag", text: "aparece en tu CV" }));
+    box.appendChild(lab);
+  });
+}
+
+let titlesFor = "";
+function renderTitles() {
+  if (titlesFor === area) return;
+  titlesFor = area;
+  const box = $("titles"); box.textContent = "";
+  const p = PRESETS[area];
+  if (!p) { box.appendChild(el("p", { class: "hint", text: "Escribí tus puestos abajo, uno por línea." })); return; }
+  const level = (document.querySelector("input[name=level]:checked") || {}).value;
+  const list = uniq(p.target_titles.concat(p.leadership_titles));
+  list.forEach((t) => {
+    const c = el("input", { type: "checkbox", value: t });
+    c.checked = cvHits.includes(t) || p.target_titles.slice(0, 8).includes(t) || (level === "lead" && p.leadership_titles.includes(t));
+    box.appendChild(el("label", {}, [c, document.createTextNode(t)]));
+  });
+}
+
+let avoidsFor = "";
+function renderAvoids() {
+  if (avoidsFor === area) return;
+  avoidsFor = area;
+  const box = $("avoids"); box.textContent = "";
+  const p = PRESETS[area] || PRESETS.rrhh;
+  const opts = uniq((p.avoid || []).concat(p.description_avoid || []));
+  opts.forEach((t) => {
+    const c = el("input", { type: "checkbox", value: t }); c.checked = true;
+    box.appendChild(el("label", {}, [c, document.createTextNode(t)]));
+  });
+}
+
+function build() {
+  const p = PRESETS[area] || null;
+  const titles = uniq([...document.querySelectorAll("#titles input:checked")].map((c) => c.value).concat(lines($("more_titles").value)));
+  const level = (document.querySelector("input[name=level]:checked") || {}).value || "sr";
+  const chosenAvoid = [...document.querySelectorAll("#avoids input:checked")].map((c) => c.value);
+  const pAvoid = p ? p.avoid : [], pDesc = p ? p.description_avoid : [];
+  let avoid = chosenAvoid.filter((x) => pAvoid.includes(x) || !pDesc.includes(x));
+  const description_avoid = uniq(chosenAvoid.filter((x) => pDesc.includes(x)).concat(lines($("more_avoid").value)));
+  const juniorWords = ["junior", "jr", "trainee", "pasante", "intern", "practicante"];
+  if (level === "junior") avoid = avoid.filter((x) => !juniorWords.includes(x));
+  else avoid = uniq(avoid.concat(level === "ssr" ? ["trainee", "pasante"] : ["junior", "jr", "trainee", "pasante"]));
+  // Senior or leadership: titles with these words only count when they also say Senior, Sr or a leadership role.
+  const SR_ONLY = ["analista", "analyst", "asistente", "assistant"].concat(area === "rrhh" ? ["recruiter", "reclutador"] : []);
+  const senior_only = level === "sr" || level === "lead" ? uniq(SR_ONLY.concat(p ? p.senior_only : [])) : [];
+  const s = {
+    first_name: $("first_name").value.trim(), last_name: $("last_name").value.trim(), email: $("email").value.trim(),
+    phone: $("phone").value.trim() || null, city: $("city").value.trim() || null, country: $("country").value.trim() || null,
+    linkedin_url: $("linkedin_url").value.trim() || null,
+    target_titles: titles, avoid, senior_only, description_avoid,
+    work_modes: [...document.querySelectorAll("input[name=mode]:checked")].map((c) => c.value),
+    search_location: $("search_location").value.trim() || null,
+    onsite_places: lines($("onsite_places").value),
+    posted_within: $("posted_within").value,
+    seniority_levels: { junior: ["junior"], ssr: ["semi senior"], sr: ["senior"], lead: ["liderazgo", "jefe", "coordinador", "gerente", "manager", "lead"] }[level],
+    avoid_companies: lines($("avoid_companies").value),
+  };
+  const num = (v) => { const d = String(v || "").replace(/\D/g, ""); return d ? Number(d) : null; };
+  s.salary_min_usd = num($("salary_min_usd").value); s.salary_min_ars = num($("salary_min_ars").value);
+  ["salary_ars", "salary_usd", "years_of_experience", "english_level", "notice_period"].forEach((k) => { const v = $(k).value.trim(); if (v) s[k] = v; });
+  const cv = $("cv").value.trim(); if (cv) s.cv_text = cv;
+  const ctx = $("context").value.trim();
+  if (ctx) s.context_notes = (CURRENT.context_notes ? CURRENT.context_notes.trim() + "\n\n" : "") + "## Lo que busco (asistente, " + new Date().toLocaleDateString("es-AR") + ")\n" + ctx;
+  // Drop empty values the user did not fill, so they don't erase what was already saved.
+  Object.keys(s).forEach((k) => { if (s[k] === null || (Array.isArray(s[k]) && !s[k].length && !["senior_only"].includes(k))) delete s[k]; });
+  return s;
+}
+
+const NAMES = { first_name: "Nombre", last_name: "Apellido", email: "Email", phone: "Teléfono", city: "Ciudad", country: "País", linkedin_url: "LinkedIn", target_titles: "Puestos objetivo", avoid: "Palabras a evitar en el título", senior_only: "Solo valen en puestos senior", description_avoid: "Frases a evitar en la descripción", search_queries: "Búsquedas para LinkedIn", work_modes: "Modalidad", search_location: "Dónde buscar", onsite_places: "Lugares para presencial o híbrido", posted_within: "Antigüedad", seniority_levels: "Niveles", avoid_companies: "Empresas a evitar", salary_min_usd: "Salario mínimo USD", salary_min_ars: "Salario mínimo pesos", salary_ars: "Pretensión en pesos", salary_usd: "Pretensión en USD", years_of_experience: "Años de experiencia", english_level: "Inglés", notice_period: "Disponibilidad", cv_text: "Texto del CV", context_notes: "Contexto" };
+const MODES = { remote: "Remoto", hybrid: "Híbrido", onsite: "Presencial" };
+let pending = null;
+async function renderSummary() {
+  const s = build();
+  try { s.search_queries = (await api("/api/asistente", { titles: s.target_titles })).queries; } catch (e) { s.search_queries = []; }
+  pending = s;
+  const dl = $("summary"); dl.textContent = "";
+  Object.entries(s).forEach(([k, v]) => {
+    let t = Array.isArray(v) ? v.map((x) => MODES[x] || x).join(" · ") : String(v);
+    if (k === "cv_text" || k === "context_notes") t = t.length > 160 ? t.slice(0, 160) + "…" : t;
+    if (k === "senior_only" && !v.length) t = "(ninguna)";
+    dl.appendChild(el("dt", { text: NAMES[k] || k })); dl.appendChild(el("dd", { text: t }));
+  });
+}
+
+async function save() {
+  if (!pending) await renderSummary();
+  const s = pending;
+  if (!s.first_name || !s.email) { say("Faltan tu nombre y tu email (paso 2).", "err"); show(1); return; }
+  if (!s.target_titles || !s.target_titles.length) { say("Elegí al menos un puesto (paso 4).", "err"); show(3); return; }
+  say("Guardando...");
+  try {
+    const r = await api("/api/config", { settings: s });
+    say("Listo, quedó guardado." + ((r.errors || []).length ? "\nAvisos: " + r.errors.join("; ") : "") + "\nSiguiente paso: en el Panel, iniciá sesión en LinkedIn y tocá Simular para ver qué elige. Todo se puede ajustar en Configuración.", "ok");
+    $("next").textContent = "Ir al Panel"; $("next").onclick = () => { location.href = "/"; };
+  } catch (e) { say(e.message, "err"); }
+}
+
+async function readCv() {
+  const text = $("cv").value.trim();
+  if (!text) return;
+  try {
+    const ex = await api("/api/extract", { text });
+    const f = ex.found || {};
+    ["first_name", "last_name", "email", "phone", "city", "country", "linkedin_url"].forEach((k) => { if (f[k] && !$(k).value.trim()) $(k).value = f[k]; });
+    DETECTED = (await api("/api/asistente", { text })).areas || [];
+    if (DETECTED.length) { if (!area || area === "rrhh") area = DETECTED[0].id; cvHits = DETECTED.flatMap((a) => a.hits); titlesFor = ""; }
+    renderAreas();
+    say(DETECTED.length ? "Leí tu CV: completé tus datos y te sugiero el área " + DETECTED[0].label + ". Revisá cada paso." : "Leí tu CV y completé los datos que encontré.", "ok");
+  } catch (e) { say(e.message, "err"); }
+}
+
+$("cvfile").onchange = async (ev) => {
+  const f = ev.target.files[0]; if (!f) return;
+  const toBase64 = (buf) => { let s = ""; const u = new Uint8Array(buf); for (let i = 0; i < u.length; i += 0x8000) s += String.fromCharCode.apply(null, u.subarray(i, i + 0x8000)); return btoa(s); };
+  say("Leyendo " + f.name + "...");
+  try { const j = await api("/api/import", { kind: "cv", name: f.name, base64: toBase64(await f.arrayBuffer()) }); $("cv").value = j.text || ""; await readCv(); }
+  catch (e) { say(e.message, "err"); }
+};
+
+$("prev").onclick = () => { say(""); show(at - 1); };
+$("skip").onclick = () => { location.href = "/config"; };
+$("next").onclick = async () => {
+  say("");
+  if (at === 0) await readCv();
+  if (at === 1 && (!$("first_name").value.trim() || !$("email").value.trim())) { say("Completá al menos tu nombre y tu email.", "err"); return; }
+  if (at === steps.length - 1) return save();
+  show(at + 1);
+};
+
+(async () => {
+  try {
+    PRESETS = (await api("/api/presets")).presets || {};
+    const c = await api("/api/config");
+    CURRENT = c.settings || {};
+    ["first_name", "last_name", "email", "phone", "city", "country", "linkedin_url", "search_location", "years_of_experience", "salary_ars", "salary_usd"].forEach((k) => { if (CURRENT[k] != null) $(k).value = CURRENT[k]; });
+    if (CURRENT.english_level) $("english_level").value = CURRENT.english_level;
+    if (CURRENT.notice_period) $("notice_period").value = CURRENT.notice_period;
+    if (CURRENT.salary_min_usd) $("salary_min_usd").value = CURRENT.salary_min_usd;
+    if (CURRENT.salary_min_ars) $("salary_min_ars").value = CURRENT.salary_min_ars;
+    if ((CURRENT.onsite_places || []).length) $("onsite_places").value = CURRENT.onsite_places.join("\n");
+    if ((CURRENT.avoid_companies || []).length) $("avoid_companies").value = CURRENT.avoid_companies.join("\n");
+    if (CURRENT.cv_text) $("cv").value = CURRENT.cv_text;
+    if (!$("search_location").value) $("search_location").value = CURRENT.country || "Argentina";
+    area = "rrhh";
+    renderAreas();
+  } catch (e) { say(e.message, "err"); }
+  show(0);
+})();
+</script>
+</body>
+</html>

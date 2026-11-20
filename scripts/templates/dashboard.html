@@ -1,0 +1,394 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Job Seeker: seguimiento</title>
+<style>
+  :root { --bg:#f6f7f9; --card:#fff; --text:#1c2430; --muted:#5b6675; --line:#d9dee6; --accent:#1f5fbf; --ok:#17794a; --warn:#9a6200; --err:#b3261e; --soft:#eef3fb; --drop:#dbe8fb; }
+  @media (prefers-color-scheme: dark) { :root { --bg:#12161c; --card:#1b212a; --text:#e7ebf0; --muted:#9aa5b4; --line:#313a47; --accent:#6ea8ff; --ok:#5fd39a; --warn:#f0b755; --err:#ff8a80; --soft:#202a38; --drop:#24364f; } }
+  * { box-sizing: border-box; }
+  body { margin:0; font:15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; background:var(--bg); color:var(--text); }
+  header { position:sticky; top:0; z-index:5; background:var(--bg); border-bottom:1px solid var(--line); }
+  .bar { max-width:1280px; margin:0 auto; padding:14px 24px 10px; display:flex; align-items:baseline; gap:20px; flex-wrap:wrap; }
+  h1 { font-size:22px; margin:0; } h2 { font-size:16px; margin:0 0 8px; }
+  nav { display:flex; gap:16px; flex-wrap:wrap; } nav a { color:var(--accent); text-decoration:none; } nav a.here { color:var(--text); font-weight:600; }
+  main { max-width:1280px; margin:0 auto; padding:0 24px 60px; }
+  section { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:16px 20px; margin:16px 0; }
+  .sub { color:var(--muted); margin:0; font-size:14px; }
+  a { color:var(--accent); }
+  button, select, input[type=search] { font:inherit; padding:7px 12px; border-radius:6px; border:1px solid var(--line); background:var(--card); color:var(--text); }
+  button { cursor:pointer; white-space:nowrap; }
+  button:disabled { opacity:.5; cursor:not-allowed; }
+
+  /* top row: title, view switch */
+  .top { display:flex; gap:12px; align-items:center; justify-content:space-between; flex-wrap:wrap; margin-top:16px; }
+  .views { display:inline-flex; border:1px solid var(--line); border-radius:8px; overflow:hidden; }
+  .views button { border:0; border-radius:0; padding:8px 16px; background:var(--card); }
+  .views button + button { border-left:1px solid var(--line); }
+  .views button.on { background:var(--accent); color:#fff; font-weight:600; }
+  .meta { color:var(--muted); font-size:13px; }
+
+  /* filters */
+  .filters { display:flex; gap:10px; flex-wrap:wrap; align-items:center; margin:12px 0 0; }
+  .filters input[type=search] { min-width:240px; flex:1 1 240px; }
+  .filters .count { color:var(--muted); font-size:14px; margin-left:auto; }
+  .link { background:none; border:0; color:var(--accent); padding:0; text-decoration:underline; }
+
+  /* summary */
+  .kpis { display:grid; grid-template-columns:repeat(auto-fit, minmax(150px, 1fr)); gap:12px; }
+  .kpi { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 16px; }
+  .kpi .n { font-size:26px; font-weight:700; line-height:1.1; }
+  .kpi .l { color:var(--muted); font-size:13px; }
+  .funnel { display:grid; gap:6px; }
+  .frow { display:grid; grid-template-columns:150px 1fr 48px; gap:10px; align-items:center; font-size:14px; }
+  .fbar { height:12px; border-radius:6px; background:var(--soft); overflow:hidden; }
+  .fbar div { height:100%; border-radius:6px; }
+  .frow .c { text-align:right; color:var(--muted); }
+  .grid2 { display:grid; grid-template-columns:1fr 1fr; gap:16px; }
+  .grid2 section { margin:0; }
+  ul.items { list-style:none; padding:0; margin:0; }
+  ul.items li { padding:8px 0; border-top:1px solid var(--line); display:flex; gap:10px; justify-content:space-between; align-items:baseline; }
+  ul.items li:first-child { border-top:0; }
+  .who b { display:block; } .who span { color:var(--muted); font-size:13px; }
+  .empty { color:var(--muted); font-size:14px; padding:6px 0; }
+
+  /* board */
+  .board { display:flex; gap:12px; overflow-x:auto; padding:4px 2px 12px; margin-top:16px; align-items:flex-start; }
+  .col { flex:0 0 236px; background:var(--soft); border:1px solid var(--line); border-radius:10px; display:flex; flex-direction:column; max-height:calc(100vh - 230px); min-height:160px; }
+  .col.over { background:var(--drop); outline:2px dashed var(--accent); outline-offset:-2px; }
+  .colhead { padding:10px 12px; display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--line); font-weight:600; font-size:14px; }
+  .colhead .k { color:var(--muted); font-weight:500; }
+  .colhead i { display:inline-block; width:9px; height:9px; border-radius:50%; margin-right:6px; }
+  .cards { padding:8px; overflow-y:auto; display:grid; gap:8px; align-content:start; flex:1; }
+  .card { background:var(--card); border:1px solid var(--line); border-radius:8px; padding:9px 11px; cursor:grab; font-size:14px; }
+  .card:active { cursor:grabbing; }
+  .card.dragging { opacity:.45; }
+  .card .co { font-weight:600; }
+  .card .ro { color:var(--text); margin:1px 0 4px; }
+  .card .ft { display:flex; gap:8px; justify-content:space-between; align-items:center; color:var(--muted); font-size:12px; }
+  .card .ft a { white-space:nowrap; }
+  .tag { display:inline-block; font-size:11px; border:1px solid var(--line); border-radius:999px; padding:0 7px; color:var(--muted); }
+  .more { margin:2px 0 4px; width:100%; font-size:13px; }
+  .hint { color:var(--muted); font-size:13px; margin:8px 0 0; }
+
+  /* list */
+  table { width:100%; border-collapse:collapse; font-size:14px; }
+  th, td { text-align:left; padding:8px 10px; border-bottom:1px solid var(--line); vertical-align:middle; }
+  th { color:var(--muted); font-weight:600; font-size:13px; white-space:nowrap; }
+  th.sort { cursor:pointer; user-select:none; }
+  th.sort:hover { color:var(--text); }
+  th .arr { font-size:11px; }
+  td select { padding:4px 8px; font-size:13px; }
+  .pager { display:flex; gap:10px; align-items:center; justify-content:flex-end; margin-top:12px; flex-wrap:wrap; color:var(--muted); font-size:14px; }
+
+  #toast { position:fixed; left:50%; bottom:24px; transform:translateX(-50%); background:#1c2430; color:#fff; padding:10px 16px; border-radius:8px; display:none; gap:14px; align-items:center; box-shadow:0 4px 18px rgba(0,0,0,.25); z-index:10; font-size:14px; }
+  #toast button { background:none; border:0; color:#9cc3ff; padding:0; text-decoration:underline; }
+  #toast.err { background:var(--err); }
+
+  @media (max-width:760px) { .grid2 { grid-template-columns:1fr; } .frow { grid-template-columns:110px 1fr 40px; } .hide-sm { display:none; } }
+</style>
+</head>
+<body>
+<header>
+  <div class="bar">
+    <h1>Job Seeker</h1>
+    <nav><a href="/">Panel</a><a href="/config">Configuración</a><a href="/avisos">Avisos para revisar</a><a class="here" href="/tablero">Seguimiento</a></nav>
+  </div>
+</header>
+<main>
+  <div class="top">
+    <div>
+      <h2 style="margin:0">Seguimiento de tus postulaciones</h2>
+      <p class="meta" id="meta">Cargando...</p>
+    </div>
+    <div style="display:flex;gap:10px;align-items:center;flex-wrap:wrap">
+      <div class="views" role="tablist" aria-label="Vista">
+        <button data-view="resumen" role="tab">Resumen</button>
+        <button data-view="tablero" role="tab">Tablero</button>
+        <button data-view="lista" role="tab">Lista</button>
+      </div>
+      <button id="reload" title="Volver a leer los datos">Actualizar</button>
+    </div>
+  </div>
+
+  <div class="filters">
+    <input type="search" id="q" placeholder="Buscar empresa o puesto" aria-label="Buscar empresa o puesto">
+    <select id="fstage" aria-label="Etapa"></select>
+    <select id="fperiod" aria-label="Período">
+      <option value="">Todo el período</option>
+      <option value="7">Últimos 7 días</option>
+      <option value="30">Últimos 30 días</option>
+      <option value="90">Últimos 90 días</option>
+    </select>
+    <select id="forigin" aria-label="Origen">
+      <option value="">Todos los orígenes</option>
+      <option value="linkedin">LinkedIn (solicitud sencilla)</option>
+      <option value="sitio">Sitio de la empresa (agente)</option>
+      <option value="propia">Postulación propia</option>
+      <option value="planilla">Desde tu planilla</option>
+    </select>
+    <button class="link" id="clear" type="button">Limpiar filtros</button>
+    <span class="count" id="count"></span>
+  </div>
+
+  <div id="view"></div>
+</main>
+<div id="toast" role="status" aria-live="polite"><span id="toastmsg"></span><button id="undo" type="button">Deshacer</button></div>
+
+<script>
+const TOKEN = '__CONFIG_TOKEN__';
+const STAGES = {
+  discovered: { label: 'Detectadas', one: 'Detectada', color: '#929295' },
+  contacted: { label: 'Contactadas', one: 'Contactada', color: '#22a6c3' },
+  applied: { label: 'Postuladas', one: 'Postulada', color: '#7c8cf0' },
+  in_review: { label: 'En revisión', one: 'En revisión', color: '#e0a03a' },
+  screening: { label: 'Primer contacto', one: 'Primer contacto', color: '#ef7d2a' },
+  interview: { label: 'Entrevista', one: 'Entrevista', color: '#2fb574' },
+  offer: { label: 'Oferta', one: 'Oferta', color: '#a47de8' },
+  hired: { label: 'Contratación', one: 'Contratación', color: '#17794a' },
+  rejected: { label: 'Rechazadas', one: 'Rechazada', color: '#e05a6c' },
+  withdrawn: { label: 'Retiradas', one: 'Retirada', color: '#929295' },
+};
+const ORDER = ['discovered', 'contacted', 'applied', 'in_review', 'screening', 'interview', 'offer', 'hired', 'rejected', 'withdrawn'];
+const ACTIVE = ['discovered', 'contacted', 'applied', 'in_review', 'screening', 'interview', 'offer', 'hired'];
+const ATTENTION = ['screening', 'interview', 'offer'];
+const ORIGIN = { linkedin: 'LinkedIn', sitio: 'Sitio de la empresa', propia: 'Propia', planilla: 'Planilla' };
+const PAGE_COL = 30;
+
+let DATA = null;
+let state = { view: 'resumen', q: '', stage: '', period: '', origin: '', sort: 'date', dir: -1, page: 1, per: 25 };
+let colShown = {};
+let dragId = null;
+let lastMove = null;
+
+// ---------- storage (best effort) ----------
+function loadState() {
+  try { const s = JSON.parse(localStorage.getItem('js-seguimiento') || '{}'); state = { ...state, ...s, page: 1 }; } catch { /* ignore */ }
+}
+function saveState() {
+  try { const { view, stage, period, origin, sort, dir, per } = state; localStorage.setItem('js-seguimiento', JSON.stringify({ view, stage, period, origin, sort, dir, per })); } catch { /* ignore */ }
+}
+
+// ---------- helpers ----------
+const esc = (s) => String(s == null ? '' : s).replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+function fmtDate(iso) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  const midnight = d.getUTCHours() === 0 && d.getUTCMinutes() === 0;
+  return d.toLocaleDateString('es-AR', midnight ? { timeZone: 'UTC', day: '2-digit', month: '2-digit', year: '2-digit' } : { day: '2-digit', month: '2-digit', year: '2-digit' });
+}
+function ago(iso) {
+  if (!iso) return '';
+  const days = Math.floor((Date.now() - new Date(iso)) / 86400000);
+  if (days <= 0) return 'hoy';
+  if (days === 1) return 'ayer';
+  if (days < 30) return 'hace ' + days + ' d';
+  return fmtDate(iso);
+}
+async function api(path, opts = {}) {
+  const r = await fetch(path, { ...opts, headers: { 'X-Config-Token': TOKEN, ...(opts.body ? { 'Content-Type': 'application/json' } : {}) } });
+  const j = await r.json().catch(() => ({}));
+  if (!r.ok) throw new Error(j.error || ('Error ' + r.status));
+  return j;
+}
+function toast(msg, undo, err) {
+  const t = document.getElementById('toast');
+  document.getElementById('toastmsg').textContent = msg;
+  document.getElementById('undo').style.display = undo ? '' : 'none';
+  t.className = err ? 'err' : '';
+  t.style.display = 'flex';
+  clearTimeout(toast.t);
+  toast.t = setTimeout(() => { t.style.display = 'none'; }, 6000);
+}
+
+// ---------- filtering ----------
+function filtered() {
+  if (!DATA) return [];
+  const q = state.q.trim().toLowerCase();
+  const since = state.period ? Date.now() - Number(state.period) * 86400000 : 0;
+  return DATA.apps.filter((a) => {
+    if (q && !(a.company + ' ' + a.role).toLowerCase().includes(q)) return false;
+    if (state.stage === 'activas' ? !ACTIVE.includes(a.status) : state.stage === 'cerradas' ? ACTIVE.includes(a.status) : state.stage && a.status !== state.stage) return false;
+    if (since && (!a.applied_at || new Date(a.applied_at) < since)) return false;
+    if (state.origin && a.origin !== state.origin) return false;
+    return true;
+  });
+}
+
+// ---------- views ----------
+function render() {
+  document.querySelectorAll('.views button').forEach((b) => b.classList.toggle('on', b.dataset.view === state.view));
+  const list = filtered();
+  document.getElementById('count').textContent = list.length === DATA.apps.length
+    ? list.length + (list.length === 1 ? ' postulación' : ' postulaciones')
+    : list.length + ' de ' + DATA.apps.length + ' postulaciones';
+  const v = document.getElementById('view');
+  if (!DATA.apps.length) {
+    v.innerHTML = '<section><h2>Todavía no hay postulaciones</h2><p class="sub">Cuando el programa se postule, o marques "Me postulé yo" en Avisos para revisar, van a aparecer acá. Si llevás una planilla propia, podés conectarla en Configuración, sección Seguimiento (opcional).</p></section>';
+    return;
+  }
+  if (state.view === 'tablero') v.innerHTML = renderBoard(list);
+  else if (state.view === 'lista') v.innerHTML = renderList(list);
+  else v.innerHTML = renderSummary(list);
+  wire();
+}
+
+function renderSummary(list) {
+  const count = (st) => list.filter((a) => a.status === st).length;
+  const active = list.filter((a) => ACTIVE.includes(a.status)).length;
+  const sent = list.filter((a) => a.status !== 'discovered' && a.status !== 'contacted').length;
+  const answered = list.filter((a) => ['screening', 'interview', 'offer', 'hired', 'rejected'].includes(a.status)).length;
+  const rate = sent ? Math.round(answered * 100 / sent) + '%' : '-';
+  const week = list.filter((a) => a.applied_at && new Date(a.applied_at) > Date.now() - 7 * 86400000).length;
+  const kpi = (n, l) => `<div class="kpi"><div class="n">${n}</div><div class="l">${l}</div></div>`;
+  const max = Math.max(1, ...ORDER.map(count));
+  const funnel = ORDER.filter((st) => count(st) > 0 || ['applied', 'interview', 'offer'].includes(st)).map((st) =>
+    `<div class="frow"><span>${STAGES[st].label}</span><div class="fbar"><div style="width:${Math.round(count(st) * 100 / max)}%;background:${STAGES[st].color}"></div></div><span class="c">${count(st)}</span></div>`).join('');
+  const att = list.filter((a) => ATTENTION.includes(a.status)).sort((a, b) => ATTENTION.indexOf(b.status) - ATTENTION.indexOf(a.status));
+  const item = (a, right) => `<li><div class="who"><b>${esc(a.company || 'Sin empresa')}</b><span>${esc(a.role)}</span></div><span class="tag">${right}</span></li>`;
+  const recent = list.slice(0, 8);
+  return `
+  <section style="background:none;border:0;padding:0">
+    <div class="kpis">
+      ${kpi(active, 'Activas')}${kpi(week, 'En los últimos 7 días')}${kpi(count('interview'), 'En entrevista')}${kpi(count('offer') + count('hired'), 'Ofertas y contrataciones')}${kpi(rate, 'Con respuesta')}
+    </div>
+  </section>
+  <section><h2>Embudo</h2><div class="funnel">${funnel}</div>
+    ${DATA.skipped ? `<p class="hint">Además, los filtros descartaron ${DATA.skipped} avisos que no coincidían con lo que buscás.</p>` : ''}
+  </section>
+  <div class="grid2">
+    <section><h2>Requieren tu atención</h2>
+      ${att.length ? `<ul class="items">${att.slice(0, 12).map((a) => item(a, STAGES[a.status].one)).join('')}</ul>` : '<p class="empty">Nada por ahora. Cuando una empresa te contacte, cambiá la etapa en Tablero o Lista y va a aparecer acá.</p>'}
+    </section>
+    <section><h2>Últimas postulaciones</h2>
+      <ul class="items">${recent.map((a) => item(a, ago(a.applied_at))).join('')}</ul>
+      ${list.length > recent.length ? '<p class="hint"><button class="link" data-go="lista">Ver todas en la lista</button></p>' : ''}
+    </section>
+  </div>`;
+}
+
+function renderBoard(list) {
+  const cols = ORDER.filter((st) => ['applied', 'in_review', 'screening', 'interview', 'offer', 'hired', 'rejected', 'withdrawn'].includes(st) || list.some((a) => a.status === st));
+  const html = cols.map((st) => {
+    const cards = list.filter((a) => a.status === st);
+    const shown = colShown[st] || PAGE_COL;
+    const body = cards.slice(0, shown).map((a) => `
+      <div class="card" draggable="true" data-id="${a.id}" title="Arrastrala a otra columna para cambiar la etapa">
+        <div class="co">${esc(a.company || 'Sin empresa')}</div>
+        <div class="ro">${esc(a.role)}</div>
+        <div class="ft"><span>${ago(a.applied_at)} · ${ORIGIN[a.origin] || ''}</span>${a.url ? `<a href="${esc(a.url)}" target="_blank" rel="noopener" draggable="false">Ver aviso</a>` : ''}</div>
+      </div>`).join('');
+    const more = cards.length > shown ? `<button class="more" data-more="${st}">Ver ${Math.min(PAGE_COL, cards.length - shown)} más (quedan ${cards.length - shown})</button>` : '';
+    return `<div class="col" data-stage="${st}">
+      <div class="colhead"><span><i style="background:${STAGES[st].color}"></i>${STAGES[st].label}</span><span class="k">${cards.length}</span></div>
+      <div class="cards">${body || '<p class="empty" style="padding:4px">Soltá una tarjeta acá.</p>'}${more}</div>
+    </div>`;
+  }).join('');
+  return `<p class="hint">Arrastrá una tarjeta a otra columna para cambiar su etapa. Cada columna tiene su propio scroll.</p><div class="board">${html}</div>`;
+}
+
+function renderList(list) {
+  const key = { company: (a) => a.company, role: (a) => a.role, stage: (a) => ORDER.indexOf(a.status), date: (a) => a.applied_at ? new Date(a.applied_at).getTime() : 0, origin: (a) => a.origin }[state.sort] || ((a) => 0);
+  const cmp = (x, y) => (typeof x === 'string' ? x.localeCompare(y, 'es', { numeric: true }) : x - y);
+  const rows = [...list].sort((a, b) => cmp(key(a), key(b)) * state.dir);
+  const pages = Math.max(1, Math.ceil(rows.length / state.per));
+  if (state.page > pages) state.page = pages;
+  const slice = rows.slice((state.page - 1) * state.per, state.page * state.per);
+  const th = (k, label, cls = '') => `<th class="sort ${cls}" data-sort="${k}">${label} <span class="arr">${state.sort === k ? (state.dir > 0 ? '▲' : '▼') : ''}</span></th>`;
+  const opts = (cur) => ORDER.map((st) => `<option value="${st}"${st === cur ? ' selected' : ''}>${STAGES[st].one}</option>`).join('');
+  return `<section style="padding:6px 12px 14px">
+    <div style="overflow-x:auto"><table>
+      <thead><tr>${th('company', 'Empresa')}${th('role', 'Puesto')}${th('stage', 'Etapa')}${th('date', 'Fecha')}${th('origin', 'Origen', 'hide-sm')}<th>Aviso</th></tr></thead>
+      <tbody>${slice.map((a) => `<tr>
+        <td><b>${esc(a.company || 'Sin empresa')}</b></td>
+        <td>${esc(a.role)}</td>
+        <td><select data-stage-of="${a.id}" aria-label="Etapa de ${esc(a.company)}">${opts(a.status)}</select></td>
+        <td style="white-space:nowrap">${fmtDate(a.applied_at)}</td>
+        <td class="hide-sm">${ORIGIN[a.origin] || ''}</td>
+        <td>${a.url ? `<a href="${esc(a.url)}" target="_blank" rel="noopener">Abrir</a>` : ''}</td>
+      </tr>`).join('')}</tbody>
+    </table></div>
+    <div class="pager">
+      <label>Mostrar <select id="per">${[25, 50, 100].map((n) => `<option${n === state.per ? ' selected' : ''}>${n}</option>`).join('')}</select> por página</label>
+      <button id="prev"${state.page <= 1 ? ' disabled' : ''}>Anterior</button>
+      <span>Página ${state.page} de ${pages}</span>
+      <button id="next"${state.page >= pages ? ' disabled' : ''}>Siguiente</button>
+    </div>
+  </section>`;
+}
+
+// ---------- moving between stages ----------
+async function move(id, stage, quiet) {
+  const a = DATA.apps.find((x) => x.id === id);
+  if (!a || a.status === stage) return;
+  const from = a.status;
+  a.status = stage;
+  render();
+  try {
+    await api('/api/etapa', { method: 'POST', body: JSON.stringify({ id, stage }) });
+    lastMove = quiet ? null : { id, from };
+    if (!quiet) toast(`${a.company || 'Postulación'}: ahora en ${STAGES[stage].one}.`, true);
+  } catch (e) {
+    a.status = from;
+    render();
+    toast('No se pudo cambiar la etapa: ' + e.message, false, true);
+  }
+}
+
+function wire() {
+  document.querySelectorAll('[data-go]').forEach((b) => b.onclick = () => { state.view = b.dataset.go; saveState(); render(); });
+  document.querySelectorAll('[data-more]').forEach((b) => b.onclick = () => { const st = b.dataset.more; colShown[st] = (colShown[st] || PAGE_COL) + PAGE_COL; render(); });
+  document.querySelectorAll('th[data-sort]').forEach((th) => th.onclick = () => {
+    const k = th.dataset.sort;
+    if (state.sort === k) state.dir = -state.dir; else { state.sort = k; state.dir = k === 'date' ? -1 : 1; }
+    saveState(); render();
+  });
+  document.querySelectorAll('select[data-stage-of]').forEach((s) => s.onchange = () => move(Number(s.dataset.stageOf), s.value));
+  const per = document.getElementById('per'); if (per) per.onchange = () => { state.per = Number(per.value); state.page = 1; saveState(); render(); };
+  const prev = document.getElementById('prev'); if (prev) prev.onclick = () => { state.page--; render(); window.scrollTo(0, 0); };
+  const next = document.getElementById('next'); if (next) next.onclick = () => { state.page++; render(); window.scrollTo(0, 0); };
+
+  document.querySelectorAll('.card[draggable]').forEach((c) => {
+    c.addEventListener('dragstart', (e) => { dragId = Number(c.dataset.id); c.classList.add('dragging'); e.dataTransfer.effectAllowed = 'move'; e.dataTransfer.setData('text/plain', c.dataset.id); });
+    c.addEventListener('dragend', () => { dragId = null; c.classList.remove('dragging'); document.querySelectorAll('.col.over').forEach((x) => x.classList.remove('over')); });
+  });
+  document.querySelectorAll('.col').forEach((col) => {
+    col.addEventListener('dragover', (e) => { if (dragId == null) return; e.preventDefault(); e.dataTransfer.dropEffect = 'move'; col.classList.add('over'); });
+    col.addEventListener('dragleave', (e) => { if (!col.contains(e.relatedTarget)) col.classList.remove('over'); });
+    col.addEventListener('drop', (e) => { e.preventDefault(); col.classList.remove('over'); const id = Number(e.dataTransfer.getData('text/plain')) || dragId; if (id) move(id, col.dataset.stage); });
+  });
+}
+
+// ---------- data ----------
+async function load() {
+  try {
+    DATA = await api('/api/data');
+    const name = DATA.userName ? DATA.userName + ' · ' : '';
+    document.getElementById('meta').textContent = name + 'Actualizado ' + new Date(DATA.generatedAt).toLocaleTimeString('es-AR', { hour: '2-digit', minute: '2-digit' });
+    render();
+  } catch (e) {
+    document.getElementById('meta').textContent = 'No pude leer los datos: ' + e.message + '. Recargá la página (F5).';
+  }
+}
+
+function initFilters() {
+  const fs = document.getElementById('fstage');
+  fs.innerHTML = '<option value="">Todas las etapas</option><option value="activas">Solo activas</option><option value="cerradas">Solo cerradas</option>' + ORDER.map((st) => `<option value="${st}">${STAGES[st].label}</option>`).join('');
+  const set = (id, k) => { const el = document.getElementById(id); el.value = state[k]; el.oninput = el.onchange = () => { if (state[k] === el.value) return; state[k] = el.value; state.page = 1; colShown = {}; saveState(); render(); }; };
+  set('q', 'q'); set('fstage', 'stage'); set('fperiod', 'period'); set('forigin', 'origin');
+  document.getElementById('clear').onclick = () => { Object.assign(state, { q: '', stage: '', period: '', origin: '', page: 1 }); ['q', 'fstage', 'fperiod', 'forigin'].forEach((id) => { document.getElementById(id).value = ''; }); colShown = {}; saveState(); render(); };
+  document.querySelectorAll('.views button').forEach((b) => b.onclick = () => { state.view = b.dataset.view; saveState(); render(); });
+  document.getElementById('reload').onclick = load;
+  document.getElementById('undo').onclick = () => { if (lastMove) { const m = lastMove; lastMove = null; document.getElementById('toast').style.display = 'none'; move(m.id, m.from, true); } };
+}
+
+loadState();
+{ const v = new URLSearchParams(location.search).get('vista'); if (['resumen', 'tablero', 'lista'].includes(v)) state.view = v; }
+initFilters();
+load();
+// Refresh now and then, but never in the middle of a drag or while a list is open.
+setInterval(() => { if (dragId == null && !document.hidden && !(document.activeElement && document.activeElement.tagName === 'SELECT')) load(); }, 60000);
+</script>
+</body>
+</html>
