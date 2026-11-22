@@ -85,7 +85,7 @@ Each flow = keyword trigger + `SKILL.md` detail file. AGENTS.md is the router; l
 | daily | `daily` | Composes news + apply/targets based on `max(applied_at)` + strategy; includes disk purge + outreach routines | all |
 | memory | always-on | Detects/saves/injects preferences into every flow | onboarding |
 | polish | `polish` | LinkedIn profile + CV optimization, PDF export, per-section approval | profile |
-| dashboard | `dashboard` | Local kanban/funnel/messages UI, 30s auto-refresh | any |
+| dashboard | `dashboard` | Local tracking UI (summary, board with drag and drop, list), 60s auto-refresh | any |
 
 ## Sourcing pillars
 

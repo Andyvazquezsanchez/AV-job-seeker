@@ -55,6 +55,7 @@ function reasonText(reason) {
   if (r.startsWith('location:')) return `presencial o híbrido fuera de tus lugares: ${rest}`;
   if (r === 'off_target_title') return 'el título no coincide con tus puestos objetivo';
   if (r === 'no_target_titles_configured') return 'no hay puestos objetivo cargados';
+  if (r === 'db_unavailable') return 'la base de datos no respondió y no se pudo confirmar si ya te postulaste: queda para la próxima';
   return r;
 }
 
@@ -158,18 +159,25 @@ function goto(url) {
   helperGoto(url, { session: SESSION });
 }
 
+// Runs one read-only query in a separate process. Returns the rows, or null when the database
+// did not answer (busy or broken). The wait is longer than the database lock wait (60 s), and a
+// busy database is retried once, so a panel request in progress does not make a check fail.
 function dbQuery(sql) {
-  try {
-    return JSON.parse(
-      execFileSync(process.execPath, [require("path").join(__dirname, "db.js"), sql], {
-        encoding: 'utf-8',
-        timeout: 15000,
-        cwd: __dirname,
-      })
-    );
-  } catch (e) {
-    return [];
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const rows = JSON.parse(
+        execFileSync(process.execPath, [require("path").join(__dirname, "db.js"), sql], {
+          encoding: 'utf-8',
+          timeout: 90000,
+          cwd: __dirname,
+        })
+      );
+      return Array.isArray(rows) ? rows : [];
+    } catch (e) {
+      if (attempt === 0) sleepSync(3000);
+    }
   }
+  return null;
 }
 
 function extractRef(text, pattern) {
@@ -181,7 +189,10 @@ function extractRef(text, pattern) {
 
 function loadUserData() {
   const userId = parseInt(process.env.USER_ID || '1', 10);
-  const row = dbQuery(`SELECT data->'profile' AS profile, data->'personal_info' AS personal, data->'job_preferences' AS prefs, data->'form_answers' AS form_answers FROM users WHERE id = ${userId}`)[0];
+  const rows = dbQuery(`SELECT data->'profile' AS profile, data->'personal_info' AS personal, data->'job_preferences' AS prefs, data->'form_answers' AS form_answers FROM users WHERE id = ${userId}`);
+  // Without the user's filters and answers nothing can be screened safely: stop here.
+  if (rows === null) { console.error('No pude leer tu configuración de la base de datos; freno sin postular. Probá de nuevo en unos minutos.'); process.exit(1); }
+  const row = rows[0];
   return {
     profile: row?.profile || {},
     personal: row?.personal || {},
@@ -420,7 +431,7 @@ function collectExternal({ searches, location, userData, posted, expFilter, quie
     const sc = screenJob(j, userData);
     if (sc.skip) {
       say(`  - ${j.role} en ${j.company} [${reasonText(sc.reason)}]`);
-      if (j.saved) ext.mark(j.saved, 'descartado', reasonText(sc.reason));
+      if (j.saved && sc.reason !== 'db_unavailable') ext.mark(j.saved, 'descartado', reasonText(sc.reason));
       continue;
     }
     const s = j.salaryFound;
@@ -468,7 +479,9 @@ function uniqueJobs(jobs) {
 // Already applied or discarded (by link, or by company and title), checked before opening the job page.
 function alreadyKnown(job) {
   if (job.company && job.role && !/^(unknown|linkedin)$/i.test(job.company)) {
-    const hit = jobMatch.findMatch({ company: job.company, role: job.role }, knownJobs());
+    const known = knownJobs();
+    if (known === null) return 'db_unavailable';
+    const hit = jobMatch.findMatch({ company: job.company, role: job.role }, known);
     if (hit) return `${hit.kind === 'same' ? 'already_applied' : 'possible_duplicate'}: ${hit.match.company} / ${hit.match.role} (${hit.match.status}, #${hit.match.id})`;
   }
   return null;
@@ -483,7 +496,8 @@ function knownJobs() {
   if (_knownJobs) return _knownJobs;
   const uid = parseInt(process.env.USER_ID || '1', 10);
   const rows = dbQuery(`SELECT id, company, role, status FROM applications WHERE user_id = ${uid} AND status IN (${APPLIED_STATUSES})`);
-  _knownJobs = Array.isArray(rows) ? rows : [];
+  if (rows === null) return null; // not cached: the next job tries again
+  _knownJobs = rows;
   return _knownJobs;
 }
 const APPLIED_STATUSES = "'applied','contacted','in_review','screening','interview','offer','hired','rejected','withdrawn','skipped'";
@@ -491,12 +505,16 @@ function screenJob(job, userData) {
   if (job.url) {
     const uid = parseInt(process.env.USER_ID || '1', 10);
     const rows = dbQuery(`SELECT id FROM applications WHERE user_id = ${uid} AND url = '${String(job.url).replace(/'/g, "''")}' AND status IN (${APPLIED_STATUSES}) LIMIT 1`);
-    if (Array.isArray(rows) && rows.length) return { skip: true, reason: `already_applied (#${rows[0].id})` };
+    // If the database did not answer, it is not known whether this job was applied to: skip it.
+    if (rows === null) return { skip: true, reason: 'db_unavailable' };
+    if (rows.length) return { skip: true, reason: `already_applied (#${rows[0].id})` };
   }
   // Same company and position already known (applied here, imported, or read from
   // the user's tracking spreadsheet), compared with tolerant matching.
   if (job.company && job.role && !/^(unknown|linkedin)$/i.test(job.company)) {
-    const hit = jobMatch.findMatch({ company: job.company, role: job.role }, knownJobs());
+    const known = knownJobs();
+    if (known === null) return { skip: true, reason: 'db_unavailable' };
+    const hit = jobMatch.findMatch({ company: job.company, role: job.role }, known);
     if (hit) return { skip: true, reason: `${hit.kind === 'same' ? 'already_applied' : 'possible_duplicate'}: ${hit.match.company} / ${hit.match.role} (${hit.match.status}, #${hit.match.id})` };
   }
   const comp = jobFilter.checkCompany(job.company, userData.prefs);

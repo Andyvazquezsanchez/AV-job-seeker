@@ -109,7 +109,7 @@ function render() {
     const row = el("div", "item");
     const info = el("div");
     const r = el("div", "role");
-    const a = el("a", "", j.role || "(sin título)"); a.href = j.url; a.target = "_blank"; a.rel = "noopener noreferrer";
+    const a = el("a", "", j.role || "(sin título)"); if (j.url) a.href = j.url; a.target = "_blank"; a.rel = "noopener noreferrer";
     r.appendChild(a);
     if (j.status === "sin revisar") r.appendChild(el("span", "badge sr", "sin revisar la descripción"));
     if (j.status === "en cola") r.appendChild(el("span", "badge", "en cola, espera tu aprobación"));
@@ -118,7 +118,7 @@ function render() {
     if (j.note && (j.status === "descartado" || j.status === "postulado")) info.appendChild(el("div", "meta", "Motivo: " + j.note));
     row.appendChild(info);
     const acts = el("div", "acts");
-    const open = el("a", "b", "Abrir aviso"); open.href = j.url; open.target = "_blank"; open.rel = "noopener noreferrer"; acts.appendChild(open);
+    const open = el("a", "b", "Abrir aviso"); if (j.url) open.href = j.url; open.target = "_blank"; open.rel = "noopener noreferrer"; acts.appendChild(open);
     if (["pendiente", "sin revisar"].includes(j.status)) {
       acts.appendChild(btn("Para el agente", "agente", j.id, true));
       acts.appendChild(btn("Me postulé yo", "yo", j.id));
@@ -162,7 +162,7 @@ function renderCola() {
     const row = el("div", "item");
     const info = el("div");
     const r = el("div", "role");
-    const a = el("a", "", q.role || "(sin título)"); a.href = q.url; a.target = "_blank"; a.rel = "noopener noreferrer"; r.appendChild(a);
+    const a = el("a", "", q.role || "(sin título)"); if (q.url) a.href = q.url; a.target = "_blank"; a.rel = "noopener noreferrer"; r.appendChild(a);
     if (q.state === "approved") r.appendChild(el("span", "badge sr", "aprobada; el agente todavía no pudo enviarla"));
     info.appendChild(r);
     info.appendChild(el("div", "meta", [q.company, q.ats ? "Sistema: " + q.ats : "", q.prepared_at ? "preparada el " + fmt(q.prepared_at) : ""].filter(Boolean).join(" · ")));
@@ -189,7 +189,7 @@ function renderCola() {
     if (!q.linkedin) info.appendChild(note);
     row.appendChild(info);
     const acts = el("div", "acts");
-    const open = el("a", "b", "Abrir formulario"); open.href = q.url; open.target = "_blank"; open.rel = "noopener noreferrer"; acts.appendChild(open);
+    const open = el("a", "b", "Abrir formulario"); if (q.url) open.href = q.url; open.target = "_blank"; open.rel = "noopener noreferrer"; acts.appendChild(open);
     const needsLogin = q.reasons.some((r) => /iniciar sesión/i.test(r));
     if (q.linkedin) {
       acts.appendChild(colaBtn(q.questions && q.questions.length ? "Responder y reintentar" : "Reintentar en la próxima corrida", "aprobar", q.id, true, null, qBoxes));

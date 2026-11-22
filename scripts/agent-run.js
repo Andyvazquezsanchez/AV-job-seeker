@@ -13,9 +13,17 @@ const { findClaude } = require('../lib/claude-cli');
 
 const ROOT = path.join(__dirname, '..');
 // Only this program's own commands, for Bash (Git for Windows) and for PowerShell (Windows without Git).
-const CMDS = ['node scripts/externos.js', 'node scripts/targets.js', 'node scripts/config.js', 'node .agents/skills/browser-automation/scripts/browser.js'];
+const CMDS = ['node scripts/externos.js', 'node scripts/targets.js', 'node .agents/skills/browser-automation/scripts/browser.js'];
+// The configuration can be read but never changed by the agent (AGENTS.md rule 21).
+const SHOW = 'node scripts/config.js show';
 const ALLOWED = ['Read', 'Glob', 'Grep']
   .concat(CMDS.map((c) => `Bash(${c} *)`), CMDS.map((c) => `PowerShell(${c} *)`))
+  .concat([`Bash(${SHOW})`, `Bash(${SHOW} *)`, `PowerShell(${SHOW})`, `PowerShell(${SHOW} *)`])
+  .join(',');
+// Never readable by the agent, whatever a web page asks: the encryption key, the encrypted
+// site passwords and the browser profile (cookies of the user's sessions).
+const DENIED = ['./.env', './.env.*', './.secrets/**', './.browser-profile/**']
+  .flatMap((p) => [`Read(${p})`, `Edit(${p})`])
   .join(',');
 
 // Files the user set in Configuración, so the agent can upload them when a form asks.
@@ -57,7 +65,7 @@ function runOne(claude, item, text) {
   return new Promise((resolve) => {
     // Manual mode ("default"): only the commands in ALLOWED run; anything else is refused, since
     // nobody is there to approve it. Auto mode would let other actions through.
-    const args = ['-p', '--permission-mode', 'default', '--output-format', 'stream-json', '--verbose', '--max-turns', '80', '--allowedTools', ALLOWED];
+    const args = ['-p', '--permission-mode', 'default', '--output-format', 'stream-json', '--verbose', '--max-turns', '80', '--allowedTools', ALLOWED, '--disallowedTools', DENIED];
     const cmd = /\.cmd$/i.test(claude);
     const child = spawn(cmd ? `"${claude}"` : claude, cmd ? args.map((a) => `"${a}"`) : args, {
       cwd: ROOT, shell: cmd, windowsHide: true, env: { ...process.env, BROWSER_NO_GUIDE: '1' }, stdio: ['pipe', 'pipe', 'pipe'],

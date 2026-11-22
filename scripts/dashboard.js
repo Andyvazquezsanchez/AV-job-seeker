@@ -70,7 +70,7 @@ async function fetchPipelineData() {
 
     return {
       apps: apps.map((r) => ({
-        id: r.id, company: r.company || '', role: r.role || '', url: /^https?:\/\//i.test(r.url || '') ? r.url : '',
+        id: r.id, company: r.company || '', role: r.role || '', url: webUrl(r.url),
         status: r.status, applied_at: r.applied_at, location: r.location || '', origin: originOf(r),
       })),
       skipped: skipped[0] ? skipped[0].n : 0,
@@ -127,7 +127,9 @@ function openInBrowser(url) {
 }
 
 const PAGES = { '/': 'panel.html', '/index.html': 'panel.html', '/config': 'config.html', '/tablero': 'dashboard.html', '/avisos': 'externos.html', '/asistente': 'asistente.html' };
-const csvCell = (v) => { const s = v == null ? '' : String(v); return /[";\r\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s; };
+const { csvCell } = require('../lib/tracking');
+// Only web links are passed to the pages (a stored javascript: link could run code when clicked).
+const webUrl = (u) => (/^https?:\/\//i.test(String(u || '')) ? String(u) : '');
 
 function main() {
   const { port, open } = parseArgs();
@@ -299,7 +301,7 @@ function main() {
           if (hit) ext.mark(e.id, hit.state === 'submitted' ? 'postulado' : 'descartado', hit.state === 'submitted' ? 'enviada por el agente' : 'la rechazaste en la cola');
         }
       } catch { /* the list still shows */ }
-      return { items: ext.load() };
+      return { items: ext.load().map((j) => ({ ...j, url: webUrl(j.url) })) };
     },
     'GET /api/cola': async () => {
       const review = require('../lib/review');
@@ -311,7 +313,7 @@ function main() {
         const A = require('../lib/answers');
         const open = new Set(pend.map((q) => A.norm(q.question)));
         const items = (await review.list(c)).map((a) => ({
-          id: a.id, company: a.company, role: a.role, url: a.url, ats: a.ats, state: a.review.state,
+          id: a.id, company: a.company, role: a.role, url: webUrl(a.url), ats: a.ats, state: a.review.state,
           linkedin: review.isLinkedIn(a.url),
           missing: review.asked(a.review).filter((q) => open.has(A.norm(q))),
           questions: pend.filter((q) => review.asked(a.review).some((x) => A.norm(x) === A.norm(q.question)))
