@@ -5,8 +5,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Job Seeker: seguimiento</title>
 <style>
-  :root { --bg:#f6f7f9; --card:#fff; --text:#1c2430; --muted:#5b6675; --line:#d9dee6; --accent:#1f5fbf; --ok:#17794a; --warn:#9a6200; --err:#b3261e; --soft:#eef3fb; --drop:#dbe8fb; }
-  @media (prefers-color-scheme: dark) { :root { --bg:#12161c; --card:#1b212a; --text:#e7ebf0; --muted:#9aa5b4; --line:#313a47; --accent:#6ea8ff; --ok:#5fd39a; --warn:#f0b755; --err:#ff8a80; --soft:#202a38; --drop:#24364f; } }
+  :root { --bar:#1f5fbf; --bg:#f6f7f9; --card:#fff; --text:#1c2430; --muted:#5b6675; --line:#d9dee6; --accent:#1f5fbf; --ok:#17794a; --warn:#9a6200; --err:#b3261e; --soft:#eef3fb; --drop:#dbe8fb; }
+  @media (prefers-color-scheme: dark) { :root { --bar:#4a8de8; --bg:#12161c; --card:#1b212a; --text:#e7ebf0; --muted:#9aa5b4; --line:#313a47; --accent:#6ea8ff; --ok:#5fd39a; --warn:#f0b755; --err:#ff8a80; --soft:#202a38; --drop:#24364f; } }
   * { box-sizing: border-box; }
   body { margin:0; font:15px/1.5 system-ui, -apple-system, "Segoe UI", sans-serif; background:var(--bg); color:var(--text); }
   header { position:sticky; top:0; z-index:5; background:var(--bg); border-bottom:1px solid var(--line); }
@@ -86,6 +86,23 @@
   #toast button { background:none; border:0; color:#9cc3ff; padding:0; text-decoration:underline; }
   #toast.err { background:var(--err); }
 
+  /* numbers */
+  .stbars { display:grid; gap:10px; margin-top:8px; }
+  .strow { display:grid; grid-template-columns:minmax(120px,190px) 1fr 140px; gap:10px; align-items:center; font-size:14px; }
+  .strow .track { height:10px; background:var(--soft); border-radius:0 4px 4px 0; position:relative; }
+  .strow .track > div { height:10px; background:var(--bar); border-radius:0 4px 4px 0; min-width:2px; }
+  .strow .v { color:var(--text); font-variant-numeric:tabular-nums; }
+  .strow .v small { color:var(--muted); }
+  .weeks { display:flex; align-items:flex-end; gap:2px; height:120px; border-bottom:1px solid var(--line); padding-top:6px; }
+  .weeks > div { flex:1; display:flex; flex-direction:column; justify-content:flex-end; height:100%; position:relative; }
+  .weeks > div > span { display:block; background:var(--bar); border-radius:4px 4px 0 0; min-height:2px; }
+  .weeks > div:hover > span { outline:2px solid var(--text); outline-offset:1px; }
+  .wlab { display:flex; gap:2px; font-size:11px; color:var(--muted); margin-top:4px; }
+  .wlab > span { flex:1; text-align:center; overflow:hidden; white-space:nowrap; }
+  .caveat { font-size:13px; color:var(--muted); margin:8px 0 0; }
+  table.sttab { width:100%; border-collapse:collapse; font-size:13px; margin-top:8px; }
+  table.sttab th, table.sttab td { text-align:left; padding:4px 8px; border-bottom:1px solid var(--line); }
+  table.sttab td.n { text-align:right; font-variant-numeric:tabular-nums; }
   /* detail and follow-up */
   .open { background:none; border:0; padding:0; color:inherit; text-align:left; font:inherit; cursor:pointer; }
   .open:hover .co, .open:hover b { text-decoration:underline; }
@@ -121,6 +138,7 @@
         <button data-view="resumen" role="tab">Resumen</button>
         <button data-view="tablero" role="tab">Tablero</button>
         <button data-view="lista" role="tab">Lista</button>
+        <button data-view="numeros" role="tab">Números</button>
       </div>
       <button id="gmail" title="Lee la lista de tus correos recientes (asunto y vista previa) en la ventana de Chrome del programa y te sugiere cambios de etapa. No abre, marca ni responde ningún correo.">Buscar novedades en Gmail</button>
       <button id="reload" title="Volver a leer los datos">Actualizar</button>
@@ -141,6 +159,7 @@
       <option value="linkedin">LinkedIn (solicitud sencilla)</option>
       <option value="sitio">Sitio de la empresa (agente)</option>
       <option value="propia">Postulación propia</option>
+      <option value="portales">Computrabajo, Bumeran o ZonaJobs</option>
       <option value="planilla">Desde tu planilla</option>
     </select>
     <button class="link" id="clear" type="button">Limpiar filtros</button>
@@ -170,7 +189,7 @@ const STAGES = {
 const ORDER = ['discovered', 'contacted', 'applied', 'in_review', 'screening', 'interview', 'offer', 'hired', 'rejected', 'withdrawn'];
 const ACTIVE = ['discovered', 'contacted', 'applied', 'in_review', 'screening', 'interview', 'offer', 'hired'];
 const ATTENTION = ['screening', 'interview', 'offer'];
-const ORIGIN = { linkedin: 'LinkedIn', sitio: 'Sitio de la empresa', propia: 'Propia', planilla: 'Planilla' };
+const ORIGIN = { linkedin: 'LinkedIn', sitio: 'Sitio de la empresa', propia: 'Propia', portales: 'Otros portales', planilla: 'Planilla' };
 const PAGE_COL = 30;
 
 let DATA = null;
@@ -248,6 +267,7 @@ function render() {
   }
   if (state.view === 'tablero') v.innerHTML = renderBoard(list);
   else if (state.view === 'lista') v.innerHTML = renderList(list);
+  else if (state.view === 'numeros') v.innerHTML = renderNumbers(list);
   else v.innerHTML = renderSummary(list);
   wire();
 }
@@ -317,6 +337,70 @@ function renderBoard(list) {
     </div>`;
   }).join('');
   return `<p class="hint">Arrastrá una tarjeta a otra columna para cambiar su etapa. Cada columna tiene su propio scroll.</p><div class="board">${html}</div>`;
+}
+
+// ---------- numbers: what is working in the search ----------
+const ANSWER = ['screening', 'interview', 'offer', 'hired', 'rejected'];
+const ADVANCE = ['screening', 'interview', 'offer', 'hired'];
+// Stages the application reached, from its current stage and its history of moves.
+const reached = (a) => new Set([a.status, ...(a.history || []).flatMap((h) => [h.stage, h.from])]);
+const answered = (a) => ANSWER.some((s) => reached(a).has(s));
+const advanced = (a) => ADVANCE.some((s) => reached(a).has(s));
+function firstAnswerDays(a) {
+  if (!a.applied_at) return null;
+  const t0 = new Date(a.applied_at).getTime();
+  const moves = (a.history || []).filter((h) => ANSWER.includes(h.stage) && h.at).map((h) => new Date(h.at).getTime()).filter((t) => t >= t0);
+  return moves.length ? Math.round((Math.min(...moves) - t0) / 86400000) : null;
+}
+const pct = (n, d) => (d ? Math.round(n * 100 / d) : 0);
+function rateRows(groups, note) {
+  const rows = groups.filter((g) => g.items.length);
+  if (!rows.length) return '<p class="sub">Sin datos con los filtros actuales.</p>';
+  return `<div class="stbars">${rows.map((g) => {
+    const n = g.items.length; const r = pct(g.items.filter(advanced).length, n); const ans = pct(g.items.filter(answered).length, n);
+    return `<div class="strow" title="${esc(g.label)}: ${n} postulaciones; ${ans}% tuvo respuesta; ${r}% avanzó a primer contacto o más"><span>${esc(g.label)}</span><div class="track" role="img" aria-label="${esc(g.label)}: ${r}% avanzó"><div style="width:${r}%"></div></div><span class="v">${r}% <small>de ${n}${n < 10 ? ', pocos datos' : ''}</small></span></div>`;
+  }).join('')}</div>${note ? `<p class="caveat">${note}</p>` : ''}`;
+}
+function renderNumbers(list) {
+  const sent = list.filter((a) => a.applied_at && !['discovered', 'contacted'].includes(a.status));
+  const kpi = (n, l) => `<div class="kpi"><div class="n">${n}</div><div class="l">${l}</div></div>`;
+  const days = sent.map(firstAnswerDays).filter((d) => d !== null).sort((x, y) => x - y);
+  const median = days.length ? days[Math.floor(days.length / 2)] : null;
+  const byOrigin = Object.keys(ORIGIN).map((o) => ({ label: ORIGIN[o], items: sent.filter((a) => a.origin === o) }));
+  const fitGroups = [
+    { label: 'Afinidad 70 o más', items: sent.filter((a) => a.fit && a.fit.score >= 70) },
+    { label: 'Afinidad 50 a 69', items: sent.filter((a) => a.fit && a.fit.score >= 50 && a.fit.score < 70) },
+    { label: 'Afinidad menor a 50', items: sent.filter((a) => a.fit && a.fit.score < 50) },
+    { label: 'Sin afinidad calculada', items: sent.filter((a) => !a.fit) },
+  ];
+  // Applications per week, last 12 weeks (weeks start on Monday).
+  const monday = (d) => { const x = new Date(d); x.setHours(0, 0, 0, 0); x.setDate(x.getDate() - ((x.getDay() + 6) % 7)); return x; };
+  const start = monday(new Date()); start.setDate(start.getDate() - 7 * 11);
+  const weeks = Array.from({ length: 12 }, (_, i) => { const w = new Date(start); w.setDate(w.getDate() + 7 * i); return { w, n: 0, adv: 0 }; });
+  for (const a of sent) {
+    const i = Math.floor((monday(a.applied_at) - start) / (7 * 86400000));
+    if (i >= 0 && i < 12) { weeks[i].n++; if (advanced(a)) weeks[i].adv++; }
+  }
+  const wmax = Math.max(1, ...weeks.map((x) => x.n));
+  const wfmt = (d) => d.toLocaleDateString('es-AR', { day: 'numeric', month: 'short' });
+  const bars = weeks.map((x) => `<div title="Semana del ${wfmt(x.w)}: ${x.n} postulaciones; ${x.adv} avanzaron"><span style="height:${Math.round(x.n * 100 / wmax)}%"></span></div>`).join('');
+  const labels = weeks.map((x, i) => `<span>${i % 2 === 0 ? wfmt(x.w) : ''}</span>`).join('');
+  const table = weeks.slice().reverse().filter((x) => x.n).map((x) => `<tr><td>Semana del ${wfmt(x.w)}</td><td class="n">${x.n}</td><td class="n">${x.adv}</td></tr>`).join('');
+  return `
+  <section style="background:none;border:0;padding:0">
+    <div class="kpis">
+      ${kpi(sent.length, 'Postulaciones enviadas')}${kpi(pct(sent.filter(answered).length, sent.length) + '%', 'Tuvieron respuesta')}${kpi(pct(sent.filter(advanced).length, sent.length) + '%', 'Avanzaron a primer contacto o más')}${kpi(median === null ? '-' : median + (median === 1 ? ' día' : ' días'), 'Hasta la primera respuesta (mediana)')}
+    </div>
+  </section>
+  <section><h2>Postulaciones por semana</h2><p class="sub">Últimas 12 semanas. Pasá el mouse por una barra para ver el detalle.</p>
+    <div class="weeks" role="img" aria-label="Postulaciones por semana en las últimas 12 semanas">${bars}</div><div class="wlab">${labels}</div>
+    <details style="margin-top:8px"><summary class="sub" style="cursor:pointer">Ver como tabla</summary><table class="sttab"><tr><th>Semana</th><th>Postulaciones</th><th>Avanzaron</th></tr>${table || '<tr><td colspan="3">Sin postulaciones en estas semanas.</td></tr>'}</table></details>
+  </section>
+  <div class="grid2">
+    <section><h2>Qué canal funciona mejor</h2><p class="sub">Porcentaje que avanzó a primer contacto o más, según el origen.</p>${rateRows(byOrigin)}</section>
+    <section><h2>Afinidad y resultados</h2><p class="sub">Porcentaje que avanzó según la afinidad del aviso.</p>${rateRows(fitGroups, 'Si los avisos de mayor afinidad avanzan más, conviene ponerles más energía (o poner una afinidad mínima en Configuración).')}</section>
+  </div>
+  <p class="caveat">Los números usan los filtros de arriba. "Tuvo respuesta" incluye rechazos. El tiempo hasta la primera respuesta sale de los cambios de etapa que hacés en el tablero o con las novedades de Gmail: ${days.length ? `se calculó con ${days.length} postulaciones` : 'todavía no hay suficientes'}.</p>`;
 }
 
 function renderList(list) {
@@ -440,6 +524,27 @@ function openDetail(id) {
     else p((f.days < 1 ? 'Tuvo movimiento hoy.' : `Sin novedades hace ${dias(f.days)}.`) + ` Te sugiero un seguimiento a los ${f.after} días sin movimiento` + (f.count ? ` (ya hiciste ${f.count}).` : '.'));
   }
 
+  h('Preparar la entrevista');
+  p(['screening', 'interview', 'offer'].includes(a.status)
+    ? 'Copiá un pedido para tu IA (ChatGPT, Gemini, Claude, Copilot) con el aviso y tu CV: preguntas probables, respuestas con ejemplos de tu experiencia, cómo hablar de lo que te falta y preguntas para hacerle a la empresa. Nada inventado.'
+    : 'Cuando te llamen, desde acá copiás un pedido para tu IA que te ayuda a preparar la entrevista con el aviso y tu CV.');
+  {
+    const row = document.createElement('div'); row.className = 'drow';
+    const msg = document.createElement('p'); msg.className = 'sub';
+    row.appendChild(button('Copiar pedido para preparar la entrevista', async (e) => {
+      e.target.disabled = true;
+      try {
+        const r = await api('/api/prep-entrevista', { method: 'POST', body: JSON.stringify({ id: a.id }) });
+        try { await navigator.clipboard.writeText(r.prompt); msg.textContent = 'Copiado. Pegalo en tu IA.'; }
+        catch { const ta = document.createElement('textarea'); ta.value = r.prompt; body.insertBefore(ta, msg.nextSibling); ta.select(); msg.textContent = 'Seleccioná el texto y copialo con Ctrl+C.'; }
+        if (!r.has_desc) msg.textContent += ' Este aviso no tiene la descripción guardada: pegala donde dice "(pegá acá la descripción del aviso)".';
+        if (!r.has_cv) msg.textContent += ' Tampoco cargaste el texto de tu CV en Configuración: pegalo donde corresponde.';
+      } catch (err) { msg.textContent = err.message; }
+      e.target.disabled = false;
+    }, ['screening', 'interview', 'offer'].includes(a.status)));
+    body.appendChild(row); body.appendChild(msg);
+  }
+
   if (a.history && a.history.length) {
     h('Movimientos');
     const ul = document.createElement('ul'); ul.className = 'hist';
@@ -513,7 +618,7 @@ function initFilters() {
 }
 
 loadState();
-{ const v = new URLSearchParams(location.search).get('vista'); if (['resumen', 'tablero', 'lista'].includes(v)) state.view = v; }
+{ const v = new URLSearchParams(location.search).get('vista'); if (['resumen', 'tablero', 'lista', 'numeros'].includes(v)) state.view = v; }
 initFilters();
 load();
 // Refresh now and then, but never in the middle of a drag or while a list is open.

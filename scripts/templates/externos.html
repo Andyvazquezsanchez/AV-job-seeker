@@ -25,6 +25,7 @@
   .badge { display:inline-block; font-size:12px; padding:1px 8px; border-radius:10px; background:var(--soft); color:var(--accent); margin-left:6px; font-weight:500; }
   .badge.sr { color:var(--warn); }
   .acts { display:flex; gap:6px; flex-wrap:wrap; justify-content:flex-end; }
+  .finders { display:flex; gap:8px; flex-wrap:wrap; align-items:center; margin:10px 0 4px; }
   button.b, a.b { font:inherit; font-size:14px; padding:6px 12px; border-radius:6px; border:1px solid var(--line); background:var(--card); color:var(--text); cursor:pointer; text-decoration:none; white-space:nowrap; }
   button.b.primary { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
   details { margin-top:6px; } summary { cursor:pointer; color:var(--accent); font-size:14px; }
@@ -45,10 +46,16 @@
 </header>
 <main>
   <section>
-    <h2>Avisos de LinkedIn sin solicitud sencilla</h2>
-    <p class="sub">Son los avisos con botón "Solicitar", que llevan al sitio de la empresa, y que pasaron tus filtros. Abrí el aviso, y elegí: <b>Para el agente</b> (el agente de Claude arranca en el momento y se postula en el sitio de la empresa), <b>Me postulé yo</b> (queda registrado y no vuelve a aparecer) o <b>Descartar</b>. El agente es opcional y necesita Claude Code instalado; sin él, te postulás vos desde el aviso y tocás <b>Me postulé yo</b>. Los marcados "sin revisar" pasaron el filtro de título, empresa, lugar y salario, pero todavía no se leyó la descripción: la próxima corrida la lee y, si no pasa, los descarta solo.</p>
+    <h2>Avisos para elegir</h2>
+    <p class="sub">Son los avisos de LinkedIn con botón "Solicitar" (llevan al sitio de la empresa), los de las páginas de empleo de empresas que cargaste (Greenhouse, Lever, Ashby) y los de Computrabajo, Bumeran y ZonaJobs, siempre que pasen tus filtros. Abrí el aviso, y elegí: <b>Para el agente</b> (el agente de Claude arranca en el momento y se postula en el sitio de la empresa), <b>Me postulé yo</b> (queda registrado y no vuelve a aparecer) o <b>Descartar</b>. El agente es opcional y necesita Claude Code instalado; sin él, te postulás vos desde el aviso y tocás <b>Me postulé yo</b>. Los marcados "sin revisar" pasaron el filtro de título, empresa, lugar y salario, pero todavía no se leyó la descripción: la próxima corrida la lee y, si no pasa, los descarta solo.</p>
+    <div class="finders">
+      <button id="find-ats" class="b" title="Lee los avisos publicados en las páginas de empleo de las empresas que cargaste en Configuración (Greenhouse, Lever o Ashby). No usa el navegador ni se postula.">Buscar en páginas de empresas</button>
+      <button id="find-portales" class="b" title="Busca tus puestos en Computrabajo, Bumeran y ZonaJobs con la ventana de Chrome del programa. No se postula: los avisos quedan acá para que elijas.">Buscar en Computrabajo, Bumeran y ZonaJobs</button>
+      <span class="sub" id="findmsg"></span>
+    </div>
     <div class="tabs" id="tabs"></div>
-    <p class="sub" id="sortrow" hidden><label>Ordenar: <select id="sort"><option value="fecha">más nuevos primero</option><option value="afinidad">mayor afinidad primero</option></select></label></p>
+    <p class="sub" id="sortrow" hidden><label>Ordenar: <select id="sort"><option value="fecha">más nuevos primero</option><option value="afinidad">mayor afinidad primero</option></select></label>
+      <label style="margin-left:12px">Origen: <select id="origin"><option value="">todos</option><option value="linkedin">LinkedIn</option><option value="empresas">páginas de empresas</option><option value="portales">otros portales</option></select></label></p>
     <p id="msg"></p>
   </section>
   <section id="list"></section>
@@ -73,6 +80,11 @@ const TABS = [
   ["descartados", "Descartados", ["descartado"]],
 ];
 let tab = "elegir", items = [], cola = [], pendingQ = 0;
+// Where each job came from (lib/external.js "source"; missing = LinkedIn).
+const SOURCE = { linkedin: "LinkedIn", greenhouse: "Greenhouse", lever: "Lever", ashby: "Ashby", computrabajo: "Computrabajo", bumeran: "Bumeran", zonajobs: "ZonaJobs" };
+const PORTALS = ["computrabajo", "bumeran", "zonajobs"];
+const group = (j) => (!j.source || j.source === "linkedin" ? "linkedin" : PORTALS.includes(j.source) ? "portales" : "empresas");
+$("origin").onchange = () => render();
 $("sort").onchange = () => { try { localStorage.setItem("js-avisos-orden", $("sort").value); } catch { /* ignore */ } render(); };
 try { const o = localStorage.getItem("js-avisos-orden"); if (o) $("sort").value = o; } catch { /* ignore */ }
 const fmt = (iso) => { try { return new Date(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" }); } catch { return ""; } };
@@ -103,8 +115,9 @@ function render() {
   const sts = TABS.find((t) => t[0] === tab)[2];
   if (!sts) return renderCola();
   const byFit = $("sort").value === "afinidad";
-  $("sortrow").hidden = !items.some((j) => j.fit);
-  const rows = items.filter((j) => sts.includes(j.status)).sort((a, b) => (byFit ? ((b.fit ? b.fit.score : -1) - (a.fit ? a.fit.score : -1)) : 0) || (b.found_at || "").localeCompare(a.found_at || ""));
+  $("sortrow").hidden = !items.some((j) => j.fit || (j.source && j.source !== "linkedin"));
+  const og = $("origin").value;
+  const rows = items.filter((j) => sts.includes(j.status) && (!og || group(j) === og)).sort((a, b) => (byFit ? ((b.fit ? b.fit.score : -1) - (a.fit ? a.fit.score : -1)) : 0) || (b.found_at || "").localeCompare(a.found_at || ""));
   const list = $("list"); list.textContent = "";
   if (!rows.length) {
     list.appendChild(el("p", "empty", tab === "elegir" ? "No hay avisos para elegir. Aparecen después de cada simulación o postulación." : "Nada por acá."));
@@ -121,15 +134,17 @@ function render() {
     if (j.status === "en cola") r.appendChild(el("span", "badge", "en cola, espera tu aprobación"));
     if (j.fit) r.appendChild(fitBadge(j.fit));
     info.appendChild(r);
-    info.appendChild(el("div", "meta", [j.company, j.location, j.salary ? "Salario: " + j.salary : "", "encontrado el " + fmt(j.found_at)].filter(Boolean).join(" · ")));
+    info.appendChild(el("div", "meta", [j.company, j.location, j.salary ? "Salario: " + j.salary : "", SOURCE[j.source || "linkedin"] || j.source, "encontrado el " + fmt(j.found_at)].filter(Boolean).join(" · ")));
     if (j.note && (j.status === "descartado" || j.status === "postulado")) info.appendChild(el("div", "meta", "Motivo: " + j.note));
     if (j.fit && j.status !== "descartado") info.appendChild(fitDetails(j.fit, { kind: "externo", id: j.id, hasDesc: j.has_desc }));
     row.appendChild(info);
     const acts = el("div", "acts");
     const open = el("a", "b", "Abrir aviso"); if (j.url) open.href = j.url; open.target = "_blank"; open.rel = "noopener noreferrer"; acts.appendChild(open);
     if (["pendiente", "sin revisar"].includes(j.status)) {
-      acts.appendChild(btn("Para el agente", "agente", j.id, true));
-      acts.appendChild(btn("Me postulé yo", "yo", j.id));
+      // On Computrabajo, Bumeran and ZonaJobs you apply with your own account there: no agent.
+      if (!PORTALS.includes(j.source)) acts.appendChild(btn("Para el agente", "agente", j.id, true));
+      acts.appendChild(btn("Me postulé yo", "yo", j.id, PORTALS.includes(j.source)));
+      acts.appendChild(aiHelp(j.id));
       acts.appendChild(btn("Descartar", "descartar", j.id));
     } else if (j.status === "para el agente") {
       acts.appendChild(btn("Me postulé yo", "yo", j.id));
@@ -211,6 +226,45 @@ function renderCola() {
     list.appendChild(row);
   });
 }
+
+// "Con tu IA": instructions for the user's own AI to help fill the form by hand.
+function aiHelp(id) {
+  const b = el("button", "b", "Postularme con mi IA");
+  b.title = "Copia un pedido para tu IA (ChatGPT, Gemini, Claude, Copilot) con el aviso, tu CV y tus respuestas guardadas, para que te ayude a completar el formulario. Revisá lo que copiás: incluye tus datos de contacto y tus respuestas.";
+  b.onclick = async () => {
+    b.disabled = true;
+    try {
+      const r = await api("/api/postular-ia", { id });
+      try { await navigator.clipboard.writeText(r.prompt); $("msg").textContent = "Copiado. Pegalo en tu IA y después pegale las preguntas del formulario."; $("msg").className = "ok"; }
+      catch { $("msg").textContent = "No pude copiar al portapapeles en este navegador."; $("msg").className = "err"; }
+    } catch (e) { $("msg").textContent = e.message; $("msg").className = "err"; }
+    b.disabled = false;
+  };
+  return b;
+}
+
+// Searches that add jobs to this page: company job boards and other job sites.
+async function find(action, label) {
+  const bA = $("find-ats"), bP = $("find-portales");
+  bA.disabled = bP.disabled = true;
+  $("findmsg").textContent = label;
+  try {
+    const job = await api("/api/run", { action });
+    let st;
+    for (let i = 0; i < 300; i++) {
+      await new Promise((r) => setTimeout(r, 2000));
+      st = await api("/api/job?since=0");
+      if (st.id === job.id && !st.running) break;
+    }
+    const lines = (st && st.lines || []).filter((l) => l.trim());
+    const last = lines.reverse().find((l) => /Avisos nuevos para revisar/.test(l)) || lines[0] || "";
+    $("findmsg").textContent = st && st.exitCode === 0 ? last.trim() : "No se pudo completar: " + (last || "mirá el detalle en el Panel, en Actividad.");
+    await load();
+  } catch (e) { $("findmsg").textContent = e.message; }
+  bA.disabled = bP.disabled = false;
+}
+$("find-ats").onclick = () => find("ats", "Buscando en las páginas de empresas...");
+$("find-portales").onclick = () => find("portales", "Buscando en Computrabajo, Bumeran y ZonaJobs con la ventana del programa. Puede tardar unos minutos...");
 
 async function load() {
   try {

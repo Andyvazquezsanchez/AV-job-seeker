@@ -46,6 +46,7 @@ function loadFiles() {
 function prompt(item) {
   return [
     `Seguí AGENTS.md, regla 19b. Postulate solo al aviso externo #${item.id}: "${item.role}" en ${item.company} (${item.url}).`,
+    item.source && item.source !== 'linkedin' ? `Este aviso no es de LinkedIn: está publicado en la página de empleo de la empresa (${item.source}). Abrí esa dirección directamente y seguí la regla 19 desde ahí.` : '',
     'Nadie va a responder preguntas durante esta corrida: no esperes aprobación ni respuestas.',
     `Enviá la postulación solo si \`node scripts/targets.js decide\` devuelve auto. En cualquier otro caso, completá lo que se pueda y dejala en la cola con \`targets.js queue add\`, agregando --notes "externo #${item.id}" (el usuario la aprueba o la rechaza desde el panel).`,
     "Si el formulario pregunta algo que el usuario no tiene respondido, no lo inventes: registralo con `node scripts/targets.js questions add --url <url del formulario> --json '[{\"question\":\"...\",\"type\":\"text\"}]'` (para opciones agregá \"options\":[...]) y dejá el aviso en cola. No hace falta crear archivos: usá --json y, en queue add, --answers-json.",
@@ -55,7 +56,7 @@ function prompt(item) {
     'Si la descripción no pasa los filtros del usuario, no te postules.',
     `Al terminar marcá el aviso con \`node scripts/externos.js mark ${item.id} <en cola|postulado|descartado> --note "<motivo>"\` y respondé en una sola línea, en español, qué pasó.`,
     'Usá siempre rutas con barras normales, como están escritas acá.',
-  ].join('\n');
+  ].filter(Boolean).join('\n');
 }
 
 const say = (t) => process.stdout.write(t + '\n');

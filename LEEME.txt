@@ -44,6 +44,23 @@ Opcional: para que un agente de IA se postule en esos sitios, hace falta
 Claude Code. Como instalarlo esta en la guia completa, capitulo 13.
 
 
+NUEVO EN LA VERSION 1.2
+-----------------------
+
+- Mas fuentes de avisos en "Avisos para revisar": paginas de empleo de
+  empresas (Greenhouse, Lever, Ashby) y Computrabajo, Bumeran y ZonaJobs.
+  Ninguna se postula sola. (Guia completa, capitulo 13.)
+- "Postularme con mi IA": copia un pedido para que tu IA te ayude a
+  completar el formulario con tus respuestas guardadas. (Capitulo 13.)
+- "Preparar la entrevista": pedido para tu IA con el aviso y tu CV.
+  (Capitulo 17.)
+- Vista "Numeros" en Seguimiento: que canal y que afinidad te dan mas
+  respuestas. (Capitulo 17.)
+- Notificaciones de Windows al terminar la corrida automatica o si LinkedIn
+  hace frenar al programa. (Capitulo 14.)
+- La clave de las contrasenas de sitios queda protegida con tu usuario de
+  Windows. (Capitulo 18.)
+
 NUEVO EN LA VERSION 1.1
 -----------------------
 

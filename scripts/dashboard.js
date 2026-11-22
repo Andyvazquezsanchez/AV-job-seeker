@@ -37,8 +37,10 @@ async function getDb() {
 const MOVABLE_STAGES = [...ACTIVE_STAGES, 'rejected', 'withdrawn'];
 
 // Where an application came from, for the filter of the tracking page.
+const PORTAL_PLATFORMS = ['computrabajo', 'bumeran', 'zonajobs'];
 function originOf(r) {
   const notes = String(r.notes || '');
+  if (PORTAL_PLATFORMS.includes(r.platform)) return 'portales';
   if (/^Postulación propia/i.test(notes)) return 'propia';
   if (r.platform === 'history' || r.source === 'history_import' || r.source === 'tracking_file') return 'planilla';
   if (r.platform === 'linkedin') return 'linkedin';
@@ -280,6 +282,38 @@ function main() {
       });
     },
 
+    // Instructions for the user's own AI to help fill an application form by hand (lib/fit.js applyPrompt).
+    'POST /api/postular-ia': async (req) => {
+      const body = await readBody(req);
+      const id = Number(body.id);
+      if (!Number.isInteger(id) || id < 1) throw new HttpError(400, 'Falta el aviso');
+      const e = require('../lib/external').load().find((j) => j.id === id);
+      if (!e) throw new HttpError(404, 'No encontré ese aviso');
+      return store.withDb(async (c) => {
+        await store.ensureSchema(c);
+        const d = (await store.getUserData(c)) || {};
+        const job = { role: e.role, company: e.company, url: e.url, description: (e.fit && e.fit.description) || '' };
+        return { prompt: require('../lib/fit').applyPrompt({ job, cvText: typeof d.cv_text === 'string' ? d.cv_text : '', answers: d.form_answers || {}, contact: d.personal_info || {} }) };
+      });
+    },
+    // Instructions for the user's own AI to prepare an interview (lib/fit.js interviewPrompt).
+    'POST /api/prep-entrevista': async (req) => {
+      const body = await readBody(req);
+      const id = Number(body.id);
+      if (!Number.isInteger(id) || id < 1) throw new HttpError(400, 'Falta la postulación');
+      const fitLib = require('../lib/fit');
+      return store.withDb(async (c) => {
+        await store.ensureSchema(c);
+        const d = (await store.getUserData(c)) || {};
+        const cvText = typeof d.cv_text === 'string' ? d.cv_text : '';
+        const r = await c.query(`SELECT role, company, status, data->>'location' AS location, data->>'description' AS description, data->>'notes' AS notes FROM applications WHERE id = $1 AND user_id = $2`, [id, store.USER_ID]);
+        if (!r.rows.length) throw new HttpError(404, 'No encontré esa postulación');
+        const job = r.rows[0];
+        const fit = job.description && cvText ? fitLib.score(job, { prefs: d.job_preferences || {}, profile: d.profile || {}, formAnswers: d.form_answers || {}, cvText }) : null;
+        return { prompt: fitLib.interviewPrompt({ job, cvText, fit, stage: job.status, notes: job.notes }), has_desc: !!job.description, has_cv: !!cvText.trim() };
+      });
+    },
+
     'GET /api/config': async () => {
       const data = await store.withDb(async (c) => { await store.ensureSchema(c); return (await store.getUserData(c)) || {}; });
       const fields = Object.fromEntries(Object.entries(cfg.FIELDS).map(([k, f]) => [k, { type: f.type, label: f.label, values: f.values, maxLen: f.maxLen }]));
@@ -493,17 +527,22 @@ function main() {
       if (!item) throw new HttpError(404, 'Ese aviso ya no está en la lista.');
       const to = { agente: 'para el agente', yo: 'postulado', descartar: 'descartado', volver: 'pendiente' }[String(body.action)];
       if (!to) throw new HttpError(400, 'Acción desconocida');
+      if (to === 'para el agente' && PORTAL_PLATFORMS.includes(item.source)) throw new HttpError(400, 'En Computrabajo, Bumeran y ZonaJobs te postulás vos con tu cuenta de ese sitio: abrí el aviso y después tocá "Me postulé yo".');
       if (to === 'postulado') {
         // Applied by hand: recorded like any other application, and in the CSV for the daily update of the spreadsheet.
         await store.withDb(async (c) => {
           await store.ensureSchema(c);
-          await store.importHistory(c, [{ platform: 'linkedin', company: item.company, role: item.role, url: item.url, status: 'applied', date: null, notes: 'Postulación propia, marcada en Avisos para revisar' }]);
+          // The fit and the job text travel with it, for Seguimiento and the interview prep.
+          const f = item.fit && typeof item.fit === 'object' ? item.fit : null;
+          const extra = f ? { fit: { score: f.score, parts: f.parts, have: f.have, reworded: f.reworded, missing: f.missing, at: f.at }, ...(f.description ? { description: String(f.description).slice(0, 8000) } : {}) } : {};
+          await store.importHistory(c, [{ platform: item.source || 'linkedin', company: item.company, role: item.role, url: item.url, status: 'applied', date: null, notes: 'Postulación propia, marcada en Avisos para revisar', extra }]);
           const data = (await store.getUserData(c)) || {};
           let tz = (data.automation && data.automation.timezone) || 'America/Argentina/Buenos_Aires';
           try { new Intl.DateTimeFormat('en', { timeZone: tz }); } catch { tz = 'America/Argentina/Buenos_Aires'; }
           try {
+            const channel = { computrabajo: 'Computrabajo', bumeran: 'Bumeran', zonajobs: 'ZonaJobs' }[item.source] || 'Sitio o ATS de la empresa';
             require('../lib/tracking').appendLog(store.logFileFrom(data), { company: item.company, role: item.role, url: item.url,
-              channel: 'Sitio o ATS de la empresa', origin: 'Postulación propia (marcada en Job Seeker)' }, new Date(), tz);
+              channel, origin: 'Postulación propia (marcada en Job Seeker)' }, new Date(), tz);
           } catch { /* the CSV is optional */ }
         });
       }
@@ -651,6 +690,8 @@ function main() {
     if (open) openInBrowser(url);
     // A scheduled run made by an older version is registered again with the hidden launcher.
     setTimeout(() => { try { if (require('../lib/schedule').upgrade()) console.log('  Actualicé la tarea programada: la corrida automática ya no abre una ventana negra.\n'); } catch { /* keeps the old one */ } }, 3000);
+    // On Windows, the key of the site passwords moves from .env to a file protected with DPAPI.
+    if (process.platform === 'win32') setTimeout(() => { try { if (require('../lib/site-credentials').protectKey()) console.log('  Protegí la clave de las contraseñas de sitios con tu usuario de Windows.\n'); } catch { /* stays in .env */ } }, 5000);
   });
 }
 

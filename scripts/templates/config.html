@@ -80,11 +80,11 @@ const TOKEN = "__CONFIG_TOKEN__";
 const REQUIRED = ["target_titles", "first_name", "email"];
 const GROUPS = [
   ["Qué buscás", "Obligatorio: puestos objetivo. Lo demás es opcional. El título del aviso tiene que contener alguno de tus puestos objetivo. Una entrada por línea, en todos los idiomas en que busques.",
-    ["target_titles", "avoid", "senior_only", "description_avoid", "search_queries", "work_modes", "posted_within", "search_location", "onsite_places", "seniority_levels", "salary_min_usd", "salary_min_ars", "min_fit"]],
+    ["target_titles", "avoid", "senior_only", "description_avoid", "search_queries", "work_modes", "posted_within", "search_location", "onsite_places", "seniority_levels", "salary_min_usd", "salary_min_ars", "min_fit", "ats_boards", "other_portals"]],
   ["Empresas", "Opcional. Las empresas a evitar se descartan siempre. Los tipos de empresa y las condiciones excluyentes los usa el agente al evaluar cada aviso.",
     ["target_companies", "avoid_companies", "company_types_preferred", "company_types_avoid", "deal_breakers"]],
   ["Ritmo y límites", "Opcional. Vacío: se usan los valores por defecto (de 7 a 19, entre 10 y 15 por día en LinkedIn, sábado la mitad, domingo descanso, 5 por empresa, 2 semanas de arranque gradual). Si LinkedIn muestra un captcha, una verificación o un aviso de límite, el programa frena solo unos días y el panel te avisa.",
-    ["timezone", "start_hour", "end_hour", "daily_cap_min", "daily_cap_max", "half_days", "rest_days", "company_cap", "ramp_weeks"]],
+    ["timezone", "start_hour", "end_hour", "daily_cap_min", "daily_cap_max", "half_days", "rest_days", "company_cap", "ramp_weeks", "notify"]],
   ["Tus datos", "Obligatorio: nombre y email. Lo demás es opcional, pero muchos formularios piden teléfono y LinkedIn. Se usan para completar formularios.", ["first_name", "last_name", "email", "phone", "city", "state", "country", "linkedin_url"]],
   ["Respuestas para formularios", "Opcional, pero recomendado. Solo se responde con lo que cargues acá. Lo que falte queda como pregunta pendiente y la postulación espera.",
     ["headline", "current_company", "school_name", "degree", "field_of_study", "years_of_experience", "experience_years", "english_level", "spanish_level", "notice_period", "seniority", "salary_default", "salary_ars", "salary_usd", "qa"]],
@@ -96,6 +96,8 @@ const GROUPS = [
     ["cv_text", "context_notes"]],
 ];
 const HINTS = {
+  ats_boards: "Opcional. Direcciones de páginas de empleo de empresas que te interesan y usan Greenhouse, Lever o Ashby, por ejemplo https://boards.greenhouse.io/empresa, https://jobs.lever.co/empresa o https://jobs.ashbyhq.com/empresa. En Avisos para revisar, \"Buscar en páginas de empresas\" trae sus avisos que pasan tus filtros; la corrida automática también los revisa.",
+  other_portals: "Opcional. En Avisos para revisar, \"Buscar en Computrabajo, Bumeran y ZonaJobs\" busca tus puestos en estos sitios. Vacío = los tres. El programa no se postula ahí: te postulás vos con tu cuenta de cada sitio.",
   min_fit: "La afinidad compara cada aviso con lo que buscás y con el texto de tu CV: puesto, palabras clave, nivel, lugar e idioma. Se muestra en la simulación, en Avisos para revisar y en Seguimiento. Si ponés un mínimo (por ejemplo 55), los avisos con menos no se postulan. Empezá sin mínimo y miralo unos días antes de usarlo.",
   cv_text: "Pegá el texto completo de tu CV. Sirve para la afinidad, para ver qué palabras clave del aviso no figuran y para armar un CV adaptado a cada aviso. Nunca se le agrega nada solo.",
   search_queries: 'Ejemplo: ("HR Business Partner" OR HRBP OR "People Partner") NOT (intern OR pasante). Una búsqueda por línea; en cada corrida se usan todas.',

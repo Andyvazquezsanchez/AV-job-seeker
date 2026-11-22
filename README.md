@@ -18,11 +18,23 @@ Gratis para uso personal.
 - **Filtra** los que no van: empresas que querés evitar, puestos de otro nivel, avisos presenciales lejos de donde vivís.
 - **Se postula solo a los avisos con Solicitud sencilla**, completando los formularios con tus datos y eligiendo el CV adecuado (por ejemplo, en inglés si el aviso está en inglés).
 - **Te deja para revisar los avisos que llevan al sitio de la empresa** (botón "Solicitar"). Los abrís vos o, si querés, se los pasás a un agente de IA para que prepare la postulación.
+- **Trae avisos de otras fuentes** para que elijas: páginas de empleo de empresas que usan Greenhouse, Lever o Ashby, y Computrabajo, Bumeran y ZonaJobs.
 - **Te dice qué tan bien encaja cada aviso** (afinidad de 0 a 100) y **qué palabras clave pide que tu CV no dice**. Con un botón copiás un pedido para tu IA que arma un CV adaptado a ese aviso, sin inventar nada.
-- **Ordena tu seguimiento** en tres vistas (Resumen, Tablero y Lista). Cuando te llama una empresa, arrastrás la tarjeta a la etapa nueva.
+- **Ordena tu seguimiento** en cuatro vistas (Resumen, Tablero, Lista y Números). Cuando te llama una empresa, arrastrás la tarjeta a la etapa nueva, y con un botón copiás un pedido para que tu IA te ayude a preparar la entrevista.
 - **Te recuerda cuándo hacer seguimiento**, con un borrador de mensaje que adaptás y enviás vos.
 - **Lee las novedades de tu Gmail** (solo la lista de correos) y te sugiere cambios de etapa: un rechazo, una invitación a entrevista. Los aplicás vos.
 - **Puede trabajar en automático** los días y horarios que elijas, con un tope diario.
+
+### Novedades de la versión 1.2
+
+- Otras fuentes de avisos en "Avisos para revisar": páginas de empleo de empresas (Greenhouse, Lever, Ashby) y Computrabajo, Bumeran y ZonaJobs. Ninguna se postula sola.
+- "Postularme con mi IA": copia un pedido para que tu IA te ayude a completar un formulario con tus respuestas guardadas, sin inventar.
+- "Preparar la entrevista": un pedido para tu IA con el aviso y tu CV.
+- Vista "Números" en Seguimiento: postulaciones por semana y qué canal y qué afinidad te traen más respuestas.
+- Avisos de Windows al terminar la corrida automática o si LinkedIn hace frenar al programa.
+- La clave que cifra las contraseñas de sitios queda protegida con tu usuario de Windows.
+
+El detalle está en la [guía completa](docs/Job-Seeker-Guia-completa.pdf), capítulos 13, 14, 17 y 18.
 
 ### Novedades de la versión 1.1
 
@@ -99,6 +111,10 @@ Importante: nunca me pidas mi contraseña de LinkedIn ni de ningún otro sitio; 
 |---|---|
 | ![Avisos para revisar](docs/img/avisos-para-revisar.png) | ![Palabras clave](docs/img/palabras-clave.png) |
 
+| Seguimiento: vista Números | Preparar la entrevista |
+|---|---|
+| ![Números](docs/img/seguimiento-numeros.png) | ![Preparar la entrevista](docs/img/preparar-entrevista.png) |
+
 | Detalle y recordatorio de seguimiento | Configuración |
 |---|---|
 | ![Detalle](docs/img/detalle-seguimiento.png) | ![Configuración](docs/img/configuracion.png) |
@@ -120,7 +136,10 @@ Por ahora la descarga es para Windows. En Mac y Linux se puede usar desde la ter
 No, a propósito: nada cambia sin que vos lo decidas. Cuando haya una versión nueva, la vas a encontrar en [Versiones](https://github.com/Andyvazquezsanchez/AV-job-seeker/releases).
 
 **Qué pasa con los avisos que llevan al sitio de la empresa?**
-Quedan en "Avisos para revisar". Ahí elegís si te postulás vos, si los descartás o, si instalaste Claude Code (opcional), si se los pasás al agente de IA. Antes de enviar, el agente te pide tu aprobación.
+Quedan en "Avisos para revisar". Ahí elegís si te postulás vos (con ayuda de tu IA, si querés), si los descartás o, si instalaste Claude Code (opcional), si se los pasás al agente de IA. Antes de enviar, el agente te pide tu aprobación.
+
+**Busca en otros sitios además de LinkedIn?**
+Sí, desde la versión 1.2: páginas de empleo de empresas que usan Greenhouse, Lever o Ashby, y Computrabajo, Bumeran y ZonaJobs. Esos avisos no se postulan solos: te quedan para elegir.
 
 **Algo no anda.**
 Mirá el capítulo "Problemas frecuentes" de la [guía completa](docs/Job-Seeker-Guia-completa.pdf). Si no lo encontrás ahí, abrí un [issue](https://github.com/Andyvazquezsanchez/AV-job-seeker/issues) contando qué pasó y qué mensaje viste, sin incluir datos personales.

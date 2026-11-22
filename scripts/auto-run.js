@@ -32,10 +32,24 @@ function trimLog() {
     }
   } catch { /* no log yet */ }
 }
-function finish(result, lines) {
+function finish(result, lines, quiet) {
   const out = { started, ended: new Date().toISOString(), result, summary: lines.slice(-25) };
   fs.writeFileSync(LAST, JSON.stringify(out, null, 2));
   log(`\nResultado: ${result}\n`);
+  // A Windows notification when something happened (lib/notify.js); nothing when it was skipped.
+  if (!quiet) {
+    const sum = lines.slice().reverse().find((l) => /^Resumen: /.test(l.trim()));
+    const sent = sum ? Number((sum.match(/(\d+) enviadas/) || [])[1] || 0) : 0;
+    const pause = require('../lib/safety').active();
+    const problem = !/terminó bien/.test(result);
+    const fresh = Number((lines.join('\n').match(/Avisos nuevos para revisar: (\d+)/) || [])[1] || 0);
+    if (pause || sent > 0 || problem || fresh > 0) {
+      const extra = fresh ? `${fresh} aviso${fresh === 1 ? '' : 's'} nuevo${fresh === 1 ? '' : 's'} de empresas en Avisos para revisar. ` : '';
+      const body = pause ? require('../lib/safety').message(pause)
+        : `${sent ? `Te postulé a ${sent} aviso${sent === 1 ? '' : 's'} en LinkedIn. ` : ''}${extra}${problem ? result.charAt(0).toUpperCase() + result.slice(1) : 'Abrí el panel para ver el detalle.'}`;
+      require('../lib/notify').notify('Job Seeker: corrida automática', body);
+    }
+  }
   lock.release();
   process.exit(0);
 }
@@ -44,7 +58,7 @@ function step(args) {
     let text = '';
     const child = spawn(process.execPath, args, {
       cwd: path.join(__dirname, '..'), windowsHide: true,
-      env: { ...process.env, BROWSER_NO_GUIDE: '1' }, stdio: ['ignore', 'pipe', 'pipe'],
+      env: { ...process.env, BROWSER_NO_GUIDE: '1', JOB_SEEKER_AUTO: '1' }, stdio: ['ignore', 'pipe', 'pipe'],
     });
     const on = (d) => { const t = d.toString('utf8'); text += t; log(t); };
     child.stdout.on('data', on);
@@ -60,17 +74,19 @@ const when = new Date().toLocaleString('es-AR', { dateStyle: 'short', timeStyle:
 log(`\n=== ${when} Postulación automática ===\n`);
 
 const settings = schedule.load();
-if (!settings.enabled) finish('desactivada; no se hizo nada.', []);
+if (!settings.enabled) finish('desactivada; no se hizo nada.', [], true);
 
 const paused = require('../lib/safety').active();
-if (paused) finish(require('../lib/safety').message(paused), []);
+if (paused) finish(require('../lib/safety').message(paused), [], true);
 
 const got = lock.acquire('automática');
-if (!got.ok) finish(`había otra tarea en curso (${got.holder.owner}); esta corrida se salteó.`, []);
+if (!got.ok) finish(`había otra tarea en curso (${got.holder.owner}); esta corrida se salteó.`, [], true);
 
 (async () => {
   const s = await step([path.join(__dirname, 'linkedin-session.js'), 'check']);
   if (s.code !== 0) finish('no pude confirmar la sesión de LinkedIn (sin internet o sesión vencida). Si se repite, abrí el panel y tocá "Iniciar sesión en LinkedIn".', s.lines);
   const a = await step([path.join(__dirname, 'linkedin-easy-apply.js'), '--quiet', '--max', String(settings.max)]);
-  finish(a.code === 0 ? 'terminó bien.' : 'terminó con un aviso (leé el detalle).', a.lines);
+  // Company job boards (public APIs, no browser): new jobs go to "Avisos para revisar".
+  const t = await step([path.join(__dirname, 'ats-avisos.js'), '--quiet']);
+  finish(a.code === 0 ? 'terminó bien.' : 'terminó con un aviso (leé el detalle).', a.lines.concat(t.lines));
 })();

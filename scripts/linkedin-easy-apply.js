@@ -187,6 +187,8 @@ function stopForSign(kind, ctx) {
   } else {
     const p = safety.pause(kind, ctx.where || (ctx.dryRun ? 'durante una simulación' : 'durante una postulación'));
     console.log(`\n*** ${safety.message(p)} ***`);
+    // The automatic run sends its own notification at the end (scripts/auto-run.js).
+    if (!process.env.JOB_SEEKER_AUTO) require('../lib/notify').notify('Job Seeker frenó las postulaciones en LinkedIn', safety.message(p));
     if (kind === 'captcha' || kind === 'checkpoint') console.log('Podés resolver la verificación a mano en la ventana de Chrome. La pausa queda igual, como cuidado de tu cuenta.');
   }
   if (ctx.jsonOutput) console.log(JSON.stringify(ctx.results || [], null, 2));

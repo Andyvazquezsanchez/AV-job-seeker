@@ -137,6 +137,9 @@ Hay tres formas de arrancar, y se pueden combinar:
 | Lugares aceptados para avisos presenciales o híbridos | Uno por línea. Un aviso presencial o híbrido pasa solo si su lugar (lo que está antes de la primera coma) coincide con alguno. Los remotos pasan siempre | `buenos aires`, `caba`, `san isidro` |
 | Palabras del título que solo valen en puestos senior | Un aviso con esas palabras pasa solo si el título también dice Senior o Sr (Semi Senior y Ssr no cuentan) | `analista`, `analyst` |
 | Salario mínimo en USD / en pesos | Bruto por mes. Si el aviso publica un salario y su máximo queda debajo, se descarta. Si no publica salario, no se descarta. Un salario anual se divide por 12; uno por hora se multiplica por 160 | `2000` |
+| Afinidad mínima para postular (opcional) | De 0 a 100. Los avisos con menos no se postulan. Vacío o 0: no filtra | `55` |
+| Páginas de empleo de empresas (opcional) | Direcciones de Greenhouse, Lever o Ashby de empresas que te interesan, una por línea (sección 8, "Otras fuentes de avisos") | `https://jobs.lever.co/empresa` |
+| Otros portales donde buscar (opcional) | computrabajo, bumeran, zonajobs. Vacío = los tres | `computrabajo` |
 
 Las coincidencias ignoran mayúsculas y tildes, y son por palabra completa: `people` no coincide con `Peoplesoft`.
 
@@ -359,9 +362,20 @@ Con eso tenés dos botones:
 - **Copiar instrucciones para tu IA: CV adaptado.** Copia un pedido para la IA que uses (ChatGPT, Gemini, Claude, Copilot) con el aviso, tu CV, las equivalencias y lo que marcaste. Las reglas del pedido son estrictas: no inventar experiencia, usar la palabra del aviso solo para lo que ya está en tu CV, mantener fechas y empresas, formato simple para ATS y listar aparte lo que no tenés.
 - **Copiar línea de competencias:** una línea para tu CV con las palabras del aviso que sí tenés.
 
+En el **detalle** de una postulación (Seguimiento) tenés además **Copiar pedido para preparar la entrevista**: tu IA recibe el aviso y tu CV y te arma las preguntas probables, respuestas con ejemplos de tu experiencia, cómo hablar de lo que te falta y preguntas para hacerle a la empresa, sin inventar nada. Y en Avisos para revisar, **Postularme con mi IA** copia un pedido para que tu IA te ayude a completar el formulario de la empresa con tus respuestas guardadas: vos le pegás las preguntas y ella las responde solo con tus datos y tu CV, y te pregunta lo que falte. Ese pedido incluye tus datos de contacto y tus respuestas: revisalo antes de pegarlo.
+
 Ejemplo de uso: en Avisos para revisar ordenás por afinidad, abrís "Palabras clave y CV para este aviso" en el primero, marcás "Workday" porque lo usaste aunque no figure en tu CV, copiás las instrucciones, las pegás en tu IA, revisás el CV que te devuelve, lo guardás en PDF y te postulás con ese CV.
 
 En **Configuración > Qué buscás** podés poner una **afinidad mínima** (por ejemplo 55): los avisos con menos no se postulan. Empezá sin mínimo y miralo unos días antes de usarlo. Si no cargaste el texto de tu CV, la afinidad se calcula sin la parte de palabras clave.
+
+### Otras fuentes de avisos
+
+Además de LinkedIn, en **Avisos para revisar** hay dos botones que suman avisos a la misma lista. Ninguno se postula: vos elegís qué hacer con cada aviso.
+
+- **Buscar en páginas de empresas.** Lee los avisos publicados en las páginas de empleo de las empresas que cargaste en Configuración ("Páginas de empleo de empresas"), si usan **Greenhouse**, **Lever** o **Ashby**. Lo reconocés por la dirección: `boards.greenhouse.io/empresa`, `jobs.lever.co/empresa` o `jobs.ashbyhq.com/empresa`. Usa los datos públicos que esas plataformas ofrecen para armar páginas de empleo: no abre el navegador ni necesita cuenta. Aplica tus filtros (puestos, empresas a evitar, frases a evitar, afinidad mínima) y deja pasar los avisos remotos sin otro país, los de tu país, los de Latinoamérica y los de tus lugares aceptados. La corrida automática también los revisa todos los días. Estos avisos se pueden pasar al agente.
+- **Buscar en Computrabajo, Bumeran y ZonaJobs.** Busca tus primeros cuatro puestos objetivo en esos sitios con la ventana de Chrome del programa, con pausas, como lo haría una persona. Lee la descripción de los primeros 12 avisos nuevos para calcular la afinidad. Si un sitio pide una verificación, frena en ese sitio. En estos portales te postulás vos con tu cuenta de cada sitio: abrí el aviso, postulate y tocá **Me postulé yo**. No se pueden pasar al agente.
+
+El filtro **Origen** de Avisos para revisar separa LinkedIn, páginas de empresas y otros portales.
 
 ### Postular
 
@@ -397,9 +411,11 @@ Cuando un formulario pregunta algo que no tenías cargado, la pregunta aparece e
 
 ### Seguimiento
 
-Pestaña **Seguimiento** (siempre con la barra de arriba para volver al Panel). Tiene tres vistas: **Resumen** (números, embudo, novedades de Gmail, lo que conviene seguir y lo que requiere tu atención), **Tablero** (una columna por etapa, con scroll propio y "Ver más") y **Lista** (tabla ordenable, también por afinidad, de a 25, 50 o 100 por página). Los filtros (búsqueda, etapa, período y origen) valen para las tres. Para cambiar la etapa de una postulación, arrastrá la tarjeta a otra columna en Tablero o elegila en la fila de la Lista; durante unos segundos podés tocar **Deshacer**. Para llevarte todo a Excel: paso 7, **Exportar**, "Postulaciones (.csv)".
+Pestaña **Seguimiento** (siempre con la barra de arriba para volver al Panel). Tiene cuatro vistas: **Resumen** (números, embudo, novedades de Gmail, lo que conviene seguir y lo que requiere tu atención), **Tablero** (una columna por etapa, con scroll propio y "Ver más"), **Lista** (tabla ordenable, también por afinidad, de a 25, 50 o 100 por página) y **Números** (ver abajo). Los filtros (búsqueda, etapa, período y origen) valen para todas. Para cambiar la etapa de una postulación, arrastrá la tarjeta a otra columna en Tablero o elegila en la fila de la Lista; durante unos segundos podés tocar **Deshacer**. Para llevarte todo a Excel: paso 7, **Exportar**, "Postulaciones (.csv)".
 
-Tocá el nombre de una empresa (en cualquier vista) para abrir el **detalle**: movimientos de etapa, seguimiento, afinidad y palabras clave.
+Tocá el nombre de una empresa (en cualquier vista) para abrir el **detalle**: movimientos de etapa, seguimiento, preparación de la entrevista, afinidad y palabras clave.
+
+**Números.** Para ver qué te está funcionando: cuántas postulaciones enviaste, qué porcentaje tuvo respuesta (incluye rechazos), qué porcentaje avanzó a primer contacto o más, cuántos días tarda la primera respuesta (mediana), un gráfico de postulaciones por semana (últimas 12, también como tabla) y el porcentaje que avanzó según el origen y según la afinidad. Si los avisos de mayor afinidad avanzan más, conviene ponerles más energía. Con pocos datos (menos de 10) lo indica al lado. El tiempo hasta la primera respuesta sale de los cambios de etapa que hacés en el tablero o con las novedades de Gmail.
 
 **Recordatorios de seguimiento.** Cuando una postulación lleva un tiempo sin movimiento, aparece en "Para hacer seguimiento" y con la marca **Hacer seguimiento**:
 
@@ -426,6 +442,7 @@ Valores por defecto, que cada usuario puede cambiar en **Ritmo y límites** de l
 | Días sin postulaciones | Domingo |
 | Máximo por empresa por día | 5 |
 | Arranque gradual en LinkedIn | 2 semanas: hasta 5 por día la primera semana y hasta 10 la segunda, desde tu primera postulación automática. 0 lo desactiva |
+| Avisos de Windows | Sí: una notificación de Windows cuando la corrida automática postuló, encontró avisos nuevos de empresas o tuvo un problema, y cuando LinkedIn hace frenar al programa. "no" los apaga |
 
 Además, sin configuración: pausas de duración variable entre acciones, entre 25 y 80 segundos entre postulaciones con un descanso de 2 a 5 minutos cada tanto, y orden de avisos mezclado.
 
@@ -485,8 +502,9 @@ Dónde vive cada cosa:
 |---|---|---|
 | Perfil, respuestas, historial, contexto | Carpeta `datos` | No |
 | Novedades leídas de Gmail (remitente, asunto, vista previa) | `datos/sugerencias-gmail.json` | No |
+| Avisos de páginas de empresas y otros portales | `datos/avisos-externos.json` | No (el programa consulta esas páginas, sin enviar datos tuyos) |
 | Registro de postulaciones automáticas | `datos` o la ruta que elijas | No |
-| Contraseñas de cuentas creadas en sitios de empresas (uso con agente) | Carpeta `.secrets`, cifradas | No |
+| Contraseñas de cuentas creadas en sitios de empresas (uso con agente) | Carpeta `.secrets`, cifradas. En Windows, la clave que las abre queda protegida con tu usuario de Windows (`.secrets/clave.dpapi`): solo ese usuario, en esa computadora, puede leerla | No |
 | Sesión de LinkedIn | Carpeta `.browser-profile` | No |
 | Tu contraseña de LinkedIn | En ningún lado: la escribís vos en Chrome | No |
 
@@ -547,6 +565,8 @@ node scripts/config.js sync [--file planilla.xlsx]   # leer la planilla de segui
 # LinkedIn
 node scripts/linkedin-session.js login | check | close
 node scripts/gmail-novedades.js [--days 30]   # solo lectura de la lista de Gmail
+node scripts/ats-avisos.js                     # avisos de páginas de empresas (Greenhouse, Lever, Ashby)
+node scripts/portales.js [--max-desc 12]       # avisos de Computrabajo, Bumeran y ZonaJobs
 node scripts/linkedin-easy-apply.js [--dry-run] [--max n] [--posted day|week|month]
                                     [--keywords q] [--location l] [--job-url u] [--quiet] [--force]
 
@@ -567,11 +587,11 @@ Avanzado: quien prefiera un servidor PostgreSQL propio puede indicarlo con `DATA
 
 ## 15. Qué está probado y qué no
 
-Probado en Windows, con una cuenta real de LinkedIn: la instalación con `Instalar.bat`, el panel, las simulaciones, postulaciones reales por Solicitud sencilla, la recolección de avisos externos y el agente de IA preparando postulaciones en sitios de empresas. También en Linux: la base local, el instalador, las importaciones (perfil, historial desde Excel, CSV y JSON, contexto), la lectura de una planilla real de más de 400 filas, el registro en CSV, los filtros, las respuestas estrictas y los límites de horario y tope. Hay más de 110 pruebas automáticas (`npm test`, requiere instalar las dependencias de desarrollo).
+Probado en Windows, con una cuenta real de LinkedIn: la instalación con `Instalar.bat`, el panel, las simulaciones, postulaciones reales por Solicitud sencilla, la recolección de avisos externos y el agente de IA preparando postulaciones en sitios de empresas. También en Linux: la base local, el instalador, las importaciones (perfil, historial desde Excel, CSV y JSON, contexto), la lectura de una planilla real de más de 400 filas, el registro en CSV, los filtros, las respuestas estrictas y los límites de horario y tope. Hay más de 120 pruebas automáticas (`npm test`, requiere instalar las dependencias de desarrollo).
 
 Verificado: el `node.exe` incluido en el paquete para Windows es el binario oficial de Node.js 22.23.5; su huella SHA-256 coincide con la publicada en nodejs.org.
 
-Nuevo en la versión 1.1 y probado con datos de ejemplo, todavía no con una cuenta real: la pausa de seguridad ante avisos de LinkedIn, la lectura de novedades de Gmail y la corrida automática sin ventana negra. La afinidad y las palabras clave se calculan con reglas simples sobre el texto: sirven de guía, no reemplazan tu lectura del aviso.
+Nuevo en las versiones 1.1 y 1.2 y probado con datos de ejemplo, todavía no con cuentas ni sitios reales: la pausa de seguridad ante avisos de LinkedIn, la lectura de novedades de Gmail, la corrida automática sin ventana negra, las notificaciones de Windows, la protección de la clave con el usuario de Windows y la búsqueda en Computrabajo, Bumeran y ZonaJobs (esos sitios cambian seguido; si un sitio no devuelve avisos, avisá). La lectura de páginas de Greenhouse, Lever y Ashby usa sus datos públicos documentados. La afinidad y las palabras clave se calculan con reglas simples sobre el texto: sirven de guía, no reemplazan tu lectura del aviso.
 
 No probado todavía: macOS. Y LinkedIn cambia su sitio con frecuencia: si algo deja de funcionar, la simulación lo muestra antes de enviar nada.
 
