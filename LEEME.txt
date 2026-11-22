@@ -44,6 +44,22 @@ Opcional: para que un agente de IA se postule en esos sitios, hace falta
 Claude Code. Como instalarlo esta en la guia completa, capitulo 13.
 
 
+NUEVO EN LA VERSION 1.1
+-----------------------
+
+- Afinidad de 0 a 100 en cada aviso y las palabras clave que el aviso pide
+  y tu CV no dice. Con un boton copias un pedido para que tu IA te arme un
+  CV adaptado a ese aviso, sin inventar nada. (Guia completa, capitulo 13.)
+- Recordatorios de seguimiento en la pestana Seguimiento, con un borrador
+  de mensaje que adaptas y envias vos. (Capitulo 17.)
+- "Buscar novedades en Gmail": lee solo la lista de correos y te sugiere
+  cambios de etapa que aplicas vos. No toca ningun correo. (Capitulo 17.)
+- Pausa de seguridad: si LinkedIn muestra un captcha o un aviso, el programa
+  frena unos dias para cuidar tu cuenta. Arranque gradual las primeras dos
+  semanas. (Capitulo 16.)
+- La postulacion automatica ya no abre una ventana negra.
+
+
 EN MAC O LINUX
 --------------
 

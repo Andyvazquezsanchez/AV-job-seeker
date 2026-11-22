@@ -208,6 +208,7 @@ Si no cargás ningún CV, se usa el que LinkedIn tenga marcado. La simulación m
 ### Texto del CV y contexto
 
 - **Texto del CV** y **Contexto:** texto libre o Markdown. El agente lo lee para armar tu perfil y redactar con tu estilo.
+- El **Texto del CV** también sirve para la afinidad y las palabras clave de cada aviso (sección 8, "Afinidad, palabras clave y CV adaptado"). Pegá el texto completo de tu CV. El programa nunca lo modifica.
 
 ## 6. Cargar tu información sin tipear
 
@@ -335,10 +336,32 @@ Simulación: me postularía a estos 4 (no envié nada):
 
 1. People Partner en Umbrella
    CV: CV_EN.pdf (el aviso está en inglés)
+   Afinidad: 74/100 (puesto 30/30, palabras clave 24/40, nivel y experiencia 10/10, lugar y modalidad 10/10, idioma 10/10)
+   En tu CV con otras palabras: "onboarding" (tu CV: Inducción); "KPIs" (tu CV: métricas)
+   No aparecen en tu CV: HRBP, Workday, relaciones laborales
 ...
 ```
 
-La simulación abre cada aviso (sin tocar nada) para aplicar los mismos controles que una postulación real: si ya te postulaste, empresas y frases a evitar, y qué CV usaría. Usala para ajustar puestos objetivo y palabras a evitar antes de postular en serio.
+La simulación abre cada aviso (sin tocar nada) para aplicar los mismos controles que una postulación real: si ya te postulaste, empresas y frases a evitar, qué CV usaría y la afinidad. Usala para ajustar puestos objetivo y palabras a evitar antes de postular en serio.
+
+### Afinidad, palabras clave y CV adaptado
+
+Cada aviso cuya descripción se leyó recibe una **afinidad** de 0 a 100. Se arma con cinco partes: puesto (30), palabras clave (40), nivel y experiencia (10), lugar y modalidad (10) e idioma (10). La ves en la simulación, en **Avisos para revisar** (con la opción de ordenar por afinidad) y en **Seguimiento**.
+
+Las **palabras clave** son los términos que el aviso pide, comparados con el texto de tu CV, en tres grupos:
+
+- **Ya están en tu CV.**
+- **Están en tu CV, pero con otras palabras:** por ejemplo, el aviso dice "onboarding" y tu CV dice "inducción". Si es lo mismo, conviene usar la palabra exacta del aviso, porque muchos filtros automáticos (ATS) buscan el término literal.
+- **No aparecen en tu CV.** Marcá las que de verdad tenés. El programa nunca le agrega nada a tu CV.
+
+Con eso tenés dos botones:
+
+- **Copiar instrucciones para tu IA: CV adaptado.** Copia un pedido para la IA que uses (ChatGPT, Gemini, Claude, Copilot) con el aviso, tu CV, las equivalencias y lo que marcaste. Las reglas del pedido son estrictas: no inventar experiencia, usar la palabra del aviso solo para lo que ya está en tu CV, mantener fechas y empresas, formato simple para ATS y listar aparte lo que no tenés.
+- **Copiar línea de competencias:** una línea para tu CV con las palabras del aviso que sí tenés.
+
+Ejemplo de uso: en Avisos para revisar ordenás por afinidad, abrís "Palabras clave y CV para este aviso" en el primero, marcás "Workday" porque lo usaste aunque no figure en tu CV, copiás las instrucciones, las pegás en tu IA, revisás el CV que te devuelve, lo guardás en PDF y te postulás con ese CV.
+
+En **Configuración > Qué buscás** podés poner una **afinidad mínima** (por ejemplo 55): los avisos con menos no se postulan. Empezá sin mínimo y miralo unos días antes de usarlo. Si no cargaste el texto de tu CV, la afinidad se calcula sin la parte de palabras clave.
 
 ### Postular
 
@@ -349,7 +372,7 @@ Botón **Postular ahora**, con la cantidad máxima para esa corrida. Qué puede 
 | ENVIADA | Enviada, registrada y anotada en el registro |
 | SALTEADA | Fuera de objetivo, empresa a evitar, frase excluida o ya postulada |
 | FALTAN RESPUESTAS | Faltaba una respuesta. No se envió. La pregunta quedó pendiente |
-| CAPTCHA | LinkedIn pidió una verificación. Se detiene. Resolvela a mano en la ventana de Chrome y probá más tarde |
+| AVISO DE LINKEDIN | LinkedIn mostró un captcha, una verificación, un aviso de restricción o el límite diario. Se detiene y pone la pausa de seguridad (sección 9) |
 | NO SE ENVIÓ POR EL CV | No pudo elegir ni subir el CV que corresponde, o en la pantalla final figuraba otro. Al lado dice el motivo |
 
 Entre una postulación y la siguiente hay pausas de 25 a 80 segundos, a propósito. Si está fuera del horario configurado o ya se llegó al tope del día, avisa y no hace nada.
@@ -359,7 +382,8 @@ Entre una postulación y la siguiente hay pausas de 25 a 80 segundos, a propósi
 En el paso 5 del panel elegís hasta 3 horarios, los días y cuántas postulaciones como máximo por corrida, y tocás **Activar**. El programa crea una tarea en el Programador de tareas de Windows ("Job Seeker - postulacion automatica") que, en esos momentos, hace lo mismo que **Postular ahora**: revisa la sesión de LinkedIn, busca, filtra, se postula y guarda los avisos externos para el agente. No hace falta tener el panel abierto.
 
 - Respeta tu horario, el tope diario y las pausas (sección 9). Un horario fuera de tu ventana no hace nada.
-- La computadora tiene que estar prendida y con tu sesión de Windows abierta: se abre una ventana negra y la ventana de Chrome del programa. Si a esa hora estaba apagada o suspendida, corre apenas la prendas.
+- La computadora tiene que estar prendida y con tu sesión de Windows abierta: se abre la ventana de Chrome del programa (ya no aparece una ventana negra). Si a esa hora estaba apagada o suspendida, corre apenas la prendas.
+- Si hay una pausa de seguridad activa (sección 9), la corrida no hace nada y lo deja anotado.
 - Si a esa hora estás usando el panel (una simulación, por ejemplo), la corrida automática se saltea; y mientras corre la automática, el panel no deja empezar otra tarea.
 - Si la sesión de LinkedIn venció, no hace nada y lo deja anotado: volvé a iniciar sesión desde el panel.
 - **Ver registro de las corridas** muestra lo que hizo cada vez (queda en `datos/automatico.log`). En el panel también ves la fecha y el resultado de la última.
@@ -373,7 +397,21 @@ Cuando un formulario pregunta algo que no tenías cargado, la pregunta aparece e
 
 ### Seguimiento
 
-Pestaña **Seguimiento** (siempre con la barra de arriba para volver al Panel). Tiene tres vistas: **Resumen** (números, embudo y lo que requiere tu atención), **Tablero** (una columna por etapa, con scroll propio y "Ver más") y **Lista** (tabla ordenable, de a 25, 50 o 100 por página). Los filtros (búsqueda, etapa, período y origen) valen para las tres. Para cambiar la etapa de una postulación, arrastrá la tarjeta a otra columna en Tablero o elegila en la fila de la Lista; durante unos segundos podés tocar **Deshacer**. Para llevarte todo a Excel: paso 7, **Exportar**, "Postulaciones (.csv)".
+Pestaña **Seguimiento** (siempre con la barra de arriba para volver al Panel). Tiene tres vistas: **Resumen** (números, embudo, novedades de Gmail, lo que conviene seguir y lo que requiere tu atención), **Tablero** (una columna por etapa, con scroll propio y "Ver más") y **Lista** (tabla ordenable, también por afinidad, de a 25, 50 o 100 por página). Los filtros (búsqueda, etapa, período y origen) valen para las tres. Para cambiar la etapa de una postulación, arrastrá la tarjeta a otra columna en Tablero o elegila en la fila de la Lista; durante unos segundos podés tocar **Deshacer**. Para llevarte todo a Excel: paso 7, **Exportar**, "Postulaciones (.csv)".
+
+Tocá el nombre de una empresa (en cualquier vista) para abrir el **detalle**: movimientos de etapa, seguimiento, afinidad y palabras clave.
+
+**Recordatorios de seguimiento.** Cuando una postulación lleva un tiempo sin movimiento, aparece en "Para hacer seguimiento" y con la marca **Hacer seguimiento**:
+
+| Etapa | Te lo sugiere a los | Hasta |
+|---|---|---|
+| Postulada, En revisión, Contactada | 10 días sin novedades (2 veces como máximo) | 45 días |
+| Primer contacto, Entrevista | 7 días (3 veces como máximo) | 30 días |
+| Oferta | 4 días (2 veces como máximo) | 21 días |
+
+En el detalle tenés un borrador corto para adaptar (completá el nombre de la persona) y tres botones: **Ya hice seguimiento** (el reloj vuelve a cero), **Recordarme en 7 días** y **No me lo recuerdes más**. El programa no envía nada: vos copiás el borrador y lo mandás por donde corresponda. Pasado el límite de la tabla, te sugiere pasarla a Rechazada o Retirada para ordenar el tablero.
+
+**Novedades de Gmail (opcional).** El botón **Buscar novedades en Gmail** abre tu Gmail en la ventana de Chrome del programa y lee solo la lista de correos de los últimos 30 días (remitente, asunto, vista previa y fecha), sin promociones ni redes sociales. Si un correo nombra a una empresa donde tenés una postulación activa y parece un rechazo, una invitación a entrevista o un aviso de que vieron tu postulación, te propone el cambio de etapa en "Novedades de tu Gmail", con **Aplicar** o **Ignorar**. No abre, no marca como leído, no archiva y no responde ningún correo, y nada sale de tu computadora. La primera vez te pide iniciar sesión en Gmail en esa ventana.
 
 ## 9. Ritmo y límites
 
@@ -387,10 +425,15 @@ Valores por defecto, que cada usuario puede cambiar en **Ritmo y límites** de l
 | Días con la mitad del tope | Sábado |
 | Días sin postulaciones | Domingo |
 | Máximo por empresa por día | 5 |
+| Arranque gradual en LinkedIn | 2 semanas: hasta 5 por día la primera semana y hasta 10 la segunda, desde tu primera postulación automática. 0 lo desactiva |
 
 Además, sin configuración: pausas de duración variable entre acciones, entre 25 y 80 segundos entre postulaciones con un descanso de 2 a 5 minutos cada tanto, y orden de avisos mezclado.
 
 Las páginas de empresas no tienen tope diario total; respetan el horario, los días de descanso y el máximo por empresa.
+
+**Pausa de seguridad.** Si LinkedIn muestra un captcha, una página de verificación, un aviso de restricción de la cuenta o el mensaje de límite diario de solicitudes, el programa frena en el momento y deja de postular en LinkedIn por un tiempo: 1 día por el límite diario, 3 días por un captcha o una verificación, 7 días por una restricción. El panel muestra un aviso con la fecha y un botón **Reanudar**, por si ya lo resolviste. Cuando la pausa termina, los 3 días siguientes el tope diario baja a la mitad. Las páginas de empresas no se pausan.
+
+Si el programa no puede contar cuántas postulaciones hiciste hoy (por ejemplo, la base de datos no responde), no postula: prefiere frenar antes que pasarse del tope.
 
 Automatizar LinkedIn va contra sus condiciones de uso y la cuenta puede ser restringida. Estos límites reducen el riesgo, no lo eliminan. Empezá con pocas postulaciones y mirá la cuenta los primeros días.
 
@@ -441,6 +484,7 @@ Dónde vive cada cosa:
 | Dato | Dónde | Sale de tu computadora |
 |---|---|---|
 | Perfil, respuestas, historial, contexto | Carpeta `datos` | No |
+| Novedades leídas de Gmail (remitente, asunto, vista previa) | `datos/sugerencias-gmail.json` | No |
 | Registro de postulaciones automáticas | `datos` o la ruta que elijas | No |
 | Contraseñas de cuentas creadas en sitios de empresas (uso con agente) | Carpeta `.secrets`, cifradas | No |
 | Sesión de LinkedIn | Carpeta `.browser-profile` | No |
@@ -476,6 +520,11 @@ No hay nada específico de una profesión o un país: los puestos, las palabras 
 | "No encontré Google Chrome" | Instalar Chrome desde https://www.google.com/chrome |
 | "LinkedIn no tiene la sesión iniciada" | Botón 2 del panel, iniciar sesión en la ventana que se abre |
 | "Fuera de horario" o "Tope del día alcanzado" | Ajustarlos en Configuración, Ritmo y límites |
+| "Postulación en LinkedIn en pausa" | LinkedIn mostró un aviso (sección 9). Esperá la fecha que indica el panel o, si ya lo resolviste, tocá **Reanudar** |
+| "No pude contar las postulaciones de hoy" | La base de datos tardó en responder. Esperá unos minutos y volvé a intentar |
+| Los primeros días postula a pocos avisos | Es el arranque gradual (sección 9). Se ajusta en Ritmo y límites |
+| La afinidad no muestra palabras clave | Cargá el texto de tu CV en Configuración, sección CV |
+| "Buscar novedades en Gmail" pide iniciar sesión | Iniciá sesión en Gmail en la ventana de Chrome del programa y volvé a tocar el botón |
 | No postula a nada | Simular y leer los motivos de descarte |
 | Todas quedan en FALTAN RESPUESTAS | Responder las preguntas pendientes; cada respuesta destraba las siguientes |
 | "No encuentro tu planilla en la ruta indicada" | Volver a copiar la ruta del archivo (clic derecho, "Copiar como ruta de acceso") |
@@ -497,6 +546,7 @@ node scripts/config.js sync [--file planilla.xlsx]   # leer la planilla de segui
 
 # LinkedIn
 node scripts/linkedin-session.js login | check | close
+node scripts/gmail-novedades.js [--days 30]   # solo lectura de la lista de Gmail
 node scripts/linkedin-easy-apply.js [--dry-run] [--max n] [--posted day|week|month]
                                     [--keywords q] [--location l] [--job-url u] [--quiet] [--force]
 
@@ -517,9 +567,11 @@ Avanzado: quien prefiera un servidor PostgreSQL propio puede indicarlo con `DATA
 
 ## 15. Qué está probado y qué no
 
-Probado en Windows, con una cuenta real de LinkedIn: la instalación con `Instalar.bat`, el panel, las simulaciones, postulaciones reales por Solicitud sencilla, la recolección de avisos externos y el agente de IA preparando postulaciones en sitios de empresas. También en Linux: la base local, el instalador, las importaciones (perfil, historial desde Excel, CSV y JSON, contexto), la lectura de una planilla real de más de 400 filas, el registro en CSV, los filtros, las respuestas estrictas y los límites de horario y tope. Hay más de 100 pruebas automáticas (`npm test`, requiere instalar las dependencias de desarrollo).
+Probado en Windows, con una cuenta real de LinkedIn: la instalación con `Instalar.bat`, el panel, las simulaciones, postulaciones reales por Solicitud sencilla, la recolección de avisos externos y el agente de IA preparando postulaciones en sitios de empresas. También en Linux: la base local, el instalador, las importaciones (perfil, historial desde Excel, CSV y JSON, contexto), la lectura de una planilla real de más de 400 filas, el registro en CSV, los filtros, las respuestas estrictas y los límites de horario y tope. Hay más de 110 pruebas automáticas (`npm test`, requiere instalar las dependencias de desarrollo).
 
 Verificado: el `node.exe` incluido en el paquete para Windows es el binario oficial de Node.js 22.23.5; su huella SHA-256 coincide con la publicada en nodejs.org.
+
+Nuevo en la versión 1.1 y probado con datos de ejemplo, todavía no con una cuenta real: la pausa de seguridad ante avisos de LinkedIn, la lectura de novedades de Gmail y la corrida automática sin ventana negra. La afinidad y las palabras clave se calculan con reglas simples sobre el texto: sirven de guía, no reemplazan tu lectura del aviso.
 
 No probado todavía: macOS. Y LinkedIn cambia su sitio con frecuencia: si algo deja de funcionar, la simulación lo muestra antes de enviar nada.
 

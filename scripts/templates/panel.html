@@ -41,6 +41,9 @@
   .auto input[type=time] { padding:6px 8px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--text); font:inherit; }
   .auto label.d { display:flex; gap:4px; align-items:center; font-size:14px; }
   #auto-state.ok { color:var(--ok); } #auto-state.err { color:var(--err); } #auto-state.warn { color:var(--warn); }
+  #pausa { border-color:var(--warn); background:var(--soft); display:flex; gap:16px; align-items:center; justify-content:space-between; flex-wrap:wrap; }
+  #pausa[hidden] { display:none; }
+  #pausa strong { color:var(--warn); }
   @media (max-width:640px) { .step { grid-template-columns:34px 1fr; } .acts { grid-column:1 / -1; justify-content:flex-start; } }
 </style>
 </head>
@@ -50,6 +53,14 @@
   <nav><a class="here" href="/">Panel</a><a href="/config">Configuración</a><a href="/avisos">Avisos para revisar</a><a href="/tablero">Seguimiento</a></nav>
 </header>
 <main>
+  <section id="pausa" hidden>
+    <div>
+      <strong>Postulación en LinkedIn en pausa</strong>
+      <p class="sub" id="pausa-text"></p>
+      <p class="note">Es una medida de cuidado de tu cuenta. Cuando termina, los próximos días el tope diario baja a la mitad. Si ya resolviste el aviso, podés reanudar antes.</p>
+    </div>
+    <button id="reanudar">Reanudar</button>
+  </section>
   <section>
     <h2 id="hello">Estado</h2>
     <p class="sub" id="today">Cargando...</p>
@@ -128,8 +139,10 @@ async function status() {
   const s = await api("/api/status");
   $("hello").textContent = s.name ? "Hola, " + s.name.split(" ")[0] : "Estado";
   const t = s.today;
+  $("pausa").hidden = !s.pause;
+  if (s.pause) $("pausa-text").textContent = s.pause.text + ". Hasta el " + new Date(s.pause.until).toLocaleString("es-AR", { dateStyle: "short", timeStyle: "short" });
   $("today").textContent = !s.has_user ? "Empezá por el paso 1: cargá tus datos."
-    : t ? t.message + (t.cap !== null && t.allowed ? "" : "") + " Postulaciones registradas en total: " + s.applications + "."
+    : t && !s.pause ? t.message + (t.cap !== null && t.allowed ? "" : "") + " Postulaciones registradas en total: " + s.applications + "."
     : "Postulaciones registradas en total: " + s.applications + ".";
   const ul = $("checks"); ul.textContent = "";
   ul.appendChild(check("ok", s.database.kind === "local" ? "Base de datos lista (archivo local en esta computadora)." : "Base de datos externa conectada."));
@@ -142,9 +155,15 @@ async function status() {
   ul.appendChild(s.pending_questions ? check("warn", s.pending_questions + " pregunta(s) de formularios esperan tu respuesta.", ["/config", "Responder"]) : check("ok", "Sin preguntas pendientes."));
   if (s.externos && s.externos.elegir) ul.appendChild(check("warn", s.externos.elegir + " aviso(s) sin solicitud sencilla esperan que elijas qué hacer.", ["/avisos", "Revisarlos"]));
   if (s.externos && s.externos.agente) ul.appendChild(check("ok", s.externos.agente + " aviso(s) en manos del agente."));
+  if (s.novedades) ul.appendChild(check("warn", s.novedades + " novedad(es) de tu Gmail para revisar.", ["/tablero", "Verlas"]));
   if (s.review_queue) ul.appendChild(check("warn", s.review_queue + " postulación(es) preparadas esperan tu aprobación.", ["/avisos", "Revisarlas"]));
   if (s.job && s.job.id && s.job.running && !running) follow(s.job.id, 0, s.job.title);
 }
+
+$("reanudar").addEventListener("click", async () => {
+  if (!confirm("Reanudar las postulaciones en LinkedIn antes de que termine la pausa?")) return;
+  try { await api("/api/pausa", { action: "reanudar" }); await status(); } catch (e) { alert(e.message); }
+});
 
 function setRunning(on) {
   running = on;

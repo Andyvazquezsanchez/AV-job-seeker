@@ -43,7 +43,7 @@ function step(args) {
   return new Promise((resolve) => {
     let text = '';
     const child = spawn(process.execPath, args, {
-      cwd: path.join(__dirname, '..'), windowsHide: false,
+      cwd: path.join(__dirname, '..'), windowsHide: true,
       env: { ...process.env, BROWSER_NO_GUIDE: '1' }, stdio: ['ignore', 'pipe', 'pipe'],
     });
     const on = (d) => { const t = d.toString('utf8'); text += t; log(t); };
@@ -61,6 +61,9 @@ log(`\n=== ${when} Postulación automática ===\n`);
 
 const settings = schedule.load();
 if (!settings.enabled) finish('desactivada; no se hizo nada.', []);
+
+const paused = require('../lib/safety').active();
+if (paused) finish(require('../lib/safety').message(paused), []);
 
 const got = lock.acquire('automática');
 if (!got.ok) finish(`había otra tarea en curso (${got.holder.owner}); esta corrida se salteó.`, []);

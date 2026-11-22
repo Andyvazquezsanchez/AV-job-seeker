@@ -18,14 +18,22 @@ Gratis para uso personal.
 - **Filtra** los que no van: empresas que querés evitar, puestos de otro nivel, avisos presenciales lejos de donde vivís.
 - **Se postula solo a los avisos con Solicitud sencilla**, completando los formularios con tus datos y eligiendo el CV adecuado (por ejemplo, en inglés si el aviso está en inglés).
 - **Te deja para revisar los avisos que llevan al sitio de la empresa** (botón "Solicitar"). Los abrís vos o, si querés, se los pasás a un agente de IA para que prepare la postulación.
+- **Te dice qué tan bien encaja cada aviso** (afinidad de 0 a 100) y **qué palabras clave pide que tu CV no dice**. Con un botón copiás un pedido para tu IA que arma un CV adaptado a ese aviso, sin inventar nada.
 - **Ordena tu seguimiento** en tres vistas (Resumen, Tablero y Lista). Cuando te llama una empresa, arrastrás la tarjeta a la etapa nueva.
+- **Te recuerda cuándo hacer seguimiento**, con un borrador de mensaje que adaptás y enviás vos.
+- **Lee las novedades de tu Gmail** (solo la lista de correos) y te sugiere cambios de etapa: un rechazo, una invitación a entrevista. Los aplicás vos.
 - **Puede trabajar en automático** los días y horarios que elijas, con un tope diario.
+
+### Novedades de la versión 1.1
+
+Afinidad y palabras clave por aviso, CV adaptado con tu IA, recordatorios de seguimiento, novedades de Gmail, pausa de seguridad si LinkedIn muestra un captcha o un aviso, arranque gradual las primeras dos semanas y postulación automática sin ventana negra. El detalle está en la [guía completa](docs/Job-Seeker-Guia-completa.pdf), capítulos 13, 16 y 17.
 
 ## Lo que tenés que saber
 
 - **Nunca inventa.** Si un formulario pregunta algo que no cargaste, no envía esa postulación y te muestra la pregunta para que la respondas una sola vez.
 - **Todo queda en tu computadora.** No hay cuentas, servidores ni suscripciones. El programa no ve tu contraseña de LinkedIn: la escribís vos en la ventana de LinkedIn.
-- **Sobre LinkedIn:** automatizar postulaciones va contra sus condiciones de uso y la cuenta puede ser restringida. Los límites del programa (horario, tope diario y pausas entre postulaciones) reducen ese riesgo pero no lo eliminan. Empezá de a poco.
+- **Nunca toca tu CV ni tus correos.** Te muestra lo que falta y lo que llegó; vos decidís qué cambiar.
+- **Sobre LinkedIn:** automatizar postulaciones va contra sus condiciones de uso y la cuenta puede ser restringida. Los límites del programa (horario, tope diario, arranque gradual, pausas entre postulaciones y una pausa de varios días si LinkedIn muestra un captcha o un aviso) reducen ese riesgo pero no lo eliminan. Empezá de a poco.
 
 ## Qué necesitás
 
@@ -87,9 +95,13 @@ Importante: nunca me pidas mi contraseña de LinkedIn ni de ningún otro sitio; 
 |---|---|
 | ![Resumen](docs/img/seguimiento-resumen.png) | ![Tablero](docs/img/seguimiento-tablero.png) |
 
-| Avisos para revisar | Configuración |
+| Avisos para revisar | Palabras clave de un aviso |
 |---|---|
-| ![Avisos para revisar](docs/img/avisos-para-revisar.png) | ![Configuración](docs/img/configuracion.png) |
+| ![Avisos para revisar](docs/img/avisos-para-revisar.png) | ![Palabras clave](docs/img/palabras-clave.png) |
+
+| Detalle y recordatorio de seguimiento | Configuración |
+|---|---|
+| ![Detalle](docs/img/detalle-seguimiento.png) | ![Configuración](docs/img/configuracion.png) |
 
 *Capturas con datos de ejemplo.*
 

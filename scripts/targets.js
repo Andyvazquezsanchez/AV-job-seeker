@@ -211,6 +211,15 @@ async function cmdRecord() {
   const platform = platformOpt || d.ats;
   const match = checkMatch(need('--match'));
   const cv = (opt('--cv') || '').replace(/[\u0000-\u001f]/g, '').slice(0, 200) || null;
+  // Fit with the job and an excerpt of its description (lib/fit.js), written by the apply script to a temp file.
+  let fit = null;
+  const fitFile = opt('--fit-file');
+  if (fitFile) {
+    try {
+      const f = JSON.parse(fs.readFileSync(fitFile, 'utf8'));
+      if (f && Number.isInteger(f.score)) fit = f;
+    } catch { /* recorded without it */ }
+  }
   await withDb(async (c) => {
     const existing = url ? await findByUrl(c, url) : null;
     if (existing && APPLIED_STAGES.includes(existing.status)) fail(`already applied (application #${existing.id})`);
@@ -218,6 +227,10 @@ async function cmdRecord() {
     const data = { ...base, ats: d.ats, source: platform === 'linkedin' ? 'linkedin_easy_apply' : 'targets', match, auto_submitted: true,
       stage_history: pushHistory(base, existing ? existing.status : null, 'applied') };
     if (cv) data.cv = cv;
+    if (fit) {
+      data.fit = { score: fit.score, parts: fit.parts, have: fit.have, reworded: fit.reworded, missing: fit.missing, at: fit.at };
+      if (fit.description) data.description = String(fit.description).slice(0, 8000);
+    }
     if (data.review && ['pending', 'approved'].includes(data.review.state)) {
       data.review = { ...data.review, state: 'submitted', submitted_at: new Date().toISOString() };
     }

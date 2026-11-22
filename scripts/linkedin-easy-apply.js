@@ -35,6 +35,8 @@ const { execSync, execFileSync } = require('child_process');
 const { jitter, betweenApplications, gate, windowClosed, shuffle, sleepSync } = require('../lib/humanize');
 const A = require('../lib/answers');
 const jobFilter = require('../lib/job-filter');
+const safety = require('../lib/safety');
+const fitLib = require('../lib/fit');
 const { spawnSync } = require('child_process');
 
 // --- Strict answers -------------------------------------------------------
@@ -55,6 +57,7 @@ function reasonText(reason) {
   if (r.startsWith('location:')) return `presencial o híbrido fuera de tus lugares: ${rest}`;
   if (r === 'off_target_title') return 'el título no coincide con tus puestos objetivo';
   if (r === 'no_target_titles_configured') return 'no hay puestos objetivo cargados';
+  if (r.startsWith('low_fit')) return `afinidad ${rest}/100, por debajo de tu mínimo`;
   if (r === 'db_unavailable') return 'la base de datos no respondió y no se pudo confirmar si ya te postulaste: queda para la próxima';
   return r;
 }
@@ -159,6 +162,37 @@ function goto(url) {
   helperGoto(url, { session: SESSION });
 }
 
+// --- LinkedIn warning signs (lib/safety.js) ---
+function signInSnapshot(snap) {
+  const s = String(snap || '').toLowerCase();
+  return s.includes('captcha') || s.includes('security check') ? 'captcha' : null;
+}
+/** 'captcha' | 'checkpoint' | 'restricted' | 'limit' | 'session' | null, from the URL, an open dialog and the snapshot. */
+function warningSign(snap) {
+  const o = evalJSON(`(function(){var d=document.querySelector('[role="alertdialog"],[role="dialog"],.artdeco-modal');return JSON.stringify({url:location.href,text:(d?d.innerText:'').slice(0,3000)});})()`, { session: SESSION });
+  const p = o && typeof o === 'object' ? o : {};
+  const url = String(p.url || '');
+  if (/linkedin\.com\/(authwall|login|uas\/login|signup)\b/i.test(url)) return 'session';
+  const fromUrl = safety.detect('', url);
+  if (fromUrl) return fromUrl;
+  // Dialog text only for limit and restriction notices: form questions may mention security checks.
+  const fromDialog = safety.detect(p.text || '', '');
+  if (fromDialog === 'limit' || fromDialog === 'restricted') return fromDialog;
+  return signInSnapshot(snap);
+}
+/** Pauses LinkedIn applying (except for a closed session) and ends the run. */
+function stopForSign(kind, ctx) {
+  if (kind === 'session') {
+    console.log('\n*** La sesión de LinkedIn se cerró. Abrí el panel y tocá "Iniciar sesión en LinkedIn"; después volvé a intentar. ***');
+  } else {
+    const p = safety.pause(kind, ctx.where || (ctx.dryRun ? 'durante una simulación' : 'durante una postulación'));
+    console.log(`\n*** ${safety.message(p)} ***`);
+    if (kind === 'captcha' || kind === 'checkpoint') console.log('Podés resolver la verificación a mano en la ventana de Chrome. La pausa queda igual, como cuidado de tu cuenta.');
+  }
+  if (ctx.jsonOutput) console.log(JSON.stringify(ctx.results || [], null, 2));
+  process.exit(kind === 'limit' ? 0 : 1);
+}
+
 // Runs one read-only query in a separate process. Returns the rows, or null when the database
 // did not answer (busy or broken). The wait is longer than the database lock wait (60 s), and a
 // busy database is retried once, so a panel request in progress does not make a check fail.
@@ -189,7 +223,7 @@ function extractRef(text, pattern) {
 
 function loadUserData() {
   const userId = parseInt(process.env.USER_ID || '1', 10);
-  const rows = dbQuery(`SELECT data->'profile' AS profile, data->'personal_info' AS personal, data->'job_preferences' AS prefs, data->'form_answers' AS form_answers FROM users WHERE id = ${userId}`);
+  const rows = dbQuery(`SELECT data->'profile' AS profile, data->'personal_info' AS personal, data->'job_preferences' AS prefs, data->'form_answers' AS form_answers, data->'cv_text' AS cv_text FROM users WHERE id = ${userId}`);
   // Without the user's filters and answers nothing can be screened safely: stop here.
   if (rows === null) { console.error('No pude leer tu configuración de la base de datos; freno sin postular. Probá de nuevo en unos minutos.'); process.exit(1); }
   const row = rows[0];
@@ -198,6 +232,7 @@ function loadUserData() {
     personal: row?.personal || {},
     prefs: row?.prefs || {},
     formAnswers: row?.form_answers || {},
+    cvText: typeof row?.cv_text === 'string' ? row.cv_text : '',
   };
 }
 
@@ -402,6 +437,7 @@ function collectExternal({ searches, location, userData, posted, expFilter, quie
     goto(jobFilter.buildSearchUrl({ keywords: q, location, prefs: userData.prefs, posted, easyApply: false }) + expFilter);
     waitFor(`document.querySelectorAll(${JSON.stringify(CARD_SEL)}).length > 0`, { timeout: 15000, session: SESSION });
     sleep(1500);
+    { const sign = warningSign(''); if (sign) stopForSign(sign, { where: 'durante una búsqueda', jsonOutput: false, results: [] }); }
     loadAllCards();
     const got = uniqueJobs(findEasyApplyJobsFromDOM()).filter((j) => !j.easyApply);
     say(`  Búsqueda ${i + 1} de ${searches.length}: ${got.length} sin solicitud sencilla`);
@@ -436,7 +472,8 @@ function collectExternal({ searches, location, userData, posted, expFilter, quie
     }
     const s = j.salaryFound;
     const salary = s ? `${s.currency === 'USD' ? 'US$' : '$'} ${s.monthlyMax.toLocaleString('es-AR')} por mes (máximo)` : (j.saved ? j.salary : null);
-    const e = j.saved ? ext.update(j.saved, { status: 'pendiente', salary }) : ext.add({ ...j, salary_text: salary }, 'pendiente');
+    const fr = fitRecord(j);
+    const e = j.saved ? ext.update(j.saved, { status: 'pendiente', salary, ...(fr ? { fit: fr } : {}) }) : ext.add({ ...j, salary_text: salary, fit: fr }, 'pendiente');
     if (e) saved.push(e);
     sleep(1500 + Math.floor(Math.random() * 2500));
   }
@@ -552,7 +589,28 @@ function screenJob(job, userData) {
   if (!check.pass) return { skip: true, reason: check.reason };
   const pay = jobFilter.checkSalary(job, userData.prefs);
   job.salaryFound = pay.salary;
-  return pay.pass ? { skip: false } : { skip: true, reason: pay.reason };
+  if (!pay.pass) return { skip: true, reason: pay.reason };
+  // Fit with the user (lib/fit.js): shown in simulations and saved with the job; optional minimum.
+  try { job.fit = fitLib.score(job, userData); } catch { job.fit = null; }
+  const minFit = Number.parseInt(userData.prefs.min_fit, 10);
+  if (job.fit && minFit > 0 && job.fit.score < minFit) return { skip: true, reason: `low_fit:${job.fit.score}` };
+  return { skip: false };
+}
+
+/** Short lines about the fit, for the console. */
+function fitLines(fit, indent = '   ') {
+  if (!fit) return [];
+  const k = fit.keywords || {};
+  const out = [`${indent}Afinidad: ${fit.score}/100 (${fit.parts.map((p) => `${p.label.toLowerCase()} ${p.points}/${p.max}`).join(', ')})`];
+  if (k.reworded && k.reworded.length) out.push(`${indent}En tu CV con otras palabras: ${k.reworded.slice(0, 5).map((r) => `"${r.term}" (tu CV: ${r.cv})`).join('; ')}`);
+  if (k.missing && k.missing.length) out.push(`${indent}No aparecen en tu CV: ${k.missing.slice(0, 8).join(', ')}`);
+  if (k.no_cv) out.push(`${indent}Cargá el texto de tu CV en Configuración para ver qué palabras clave te faltan.`);
+  return out;
+}
+/** Fit and an excerpt of the description, saved with an application or a job for the user's review. */
+function fitRecord(job) {
+  const f = fitLib.summary(job.fit);
+  return f ? { ...f, description: String(job.description || '').slice(0, 8000) } : null;
 }
 
 // --- Recording (no shell: page text such as company or role never reaches a command line parser) ---
@@ -574,7 +632,15 @@ function recordApplied(job, match) {
   if (job.url) args.push('--url', job.url);
   if (CV && CV.want && CV.want.file && CV.verified) args.push('--cv', CV.want.file);
   if (_knownJobs) _knownJobs.push({ id: 'nuevo', company: job.company, role: job.role, status: 'applied' });
-  return runTargets(args);
+  const fr = fitRecord(job);
+  let file = null;
+  if (fr) {
+    file = require('path').join(require('os').tmpdir(), `js-fit-${process.pid}-${Date.now()}.json`);
+    try { require('fs').writeFileSync(file, JSON.stringify(fr)); args.push('--fit-file', file); } catch { file = null; }
+  }
+  const ok = runTargets(args);
+  if (file) { try { require('fs').unlinkSync(file); } catch { /* ignore */ } }
+  return ok;
 }
 function recordNeedsAnswers(job, questions) {
   const os = require('os'); const fs = require('fs'); const path = require('path');
@@ -913,10 +979,10 @@ function applyToJob(jobRef, userData) {
       return { status: 'applied', company: companyMatch ? companyMatch[1] : 'Unknown' };
     }
 
-    // Check for captcha
-    if (snap.toLowerCase().includes('captcha') || snap.toLowerCase().includes('security check')) {
-      return { status: 'captcha', error: 'Captcha detected. Agent must stop and ask user.' };
-    }
+    // Warning signs (captcha, verification, restriction, daily limit): stop and pause (lib/safety.js).
+    // The open dialog is read on the first step and whenever the form shows no way forward.
+    const sign = (steps === 1 || (!hasNext && !hasReview && !hasSubmit)) ? warningSign(snap) : signInSnapshot(snap);
+    if (sign) return { status: 'warning', sign, error: (safety.REASONS[sign] || { text: sign }).text };
 
     // CV for this job: choose it on the resume step (does nothing on other steps)
     if (!/button "(?:Submit application|Enviar solicitud|Presentar solicitud)"/.test(snap)) {
@@ -1750,6 +1816,14 @@ function main() {
     else if (args[i] === '--job-url' && args[i + 1]) { jobUrl = args[i + 1]; i++; }
   }
 
+  // Safety pause after a LinkedIn warning sign (lib/safety.js). Applying waits until it ends or the
+  // user resumes it in the panel; a simulation can still run with --force.
+  const pausedNow = safety.active();
+  if (pausedNow && (!dryRun || !args.includes('--force'))) {
+    console.log(jsonOutput ? '[]' : safety.message(pausedNow));
+    process.exit(0);
+  }
+
   // Daily window, cap and rest days (see lib/humanize.js). --force bypasses them for one run.
   if (!dryRun && !args.includes('--force')) {
     const g = gate();
@@ -1826,6 +1900,8 @@ function main() {
     process.stdout.write(dryRun ? `Revisando ${jobUrl} (simulación)... ` : `Postulando a ${jobUrl}... `);
     goto(job.url);
     sleep(3000);
+    const oneSign = warningSign('');
+    if (oneSign) stopForSign(oneSign, { dryRun, jsonOutput, results });
 
     // Resolve role/company from the page for DB
     const meta = evalJSON(`(function(){
@@ -1866,6 +1942,7 @@ function main() {
             const w = prepareCv(job, userData);
             console.log(`\nSimulación: me postularía a ${job.role} en ${job.company} (no envié nada)`);
             console.log(`   CV: ${cvLabel(w)} (${w.reason})`);
+            fitLines(job.fit).forEach((l) => console.log(l));
           }
           return;
         }
@@ -1880,6 +1957,8 @@ function main() {
           recordNeedsAnswers(job, result.questions);
         } else if (result.status === 'cv_problem') {
           console.log(`NO SE ENVIÓ POR EL CV: ${result.error}`);
+        } else if (result.status === 'warning') {
+          stopForSign(result.sign, { dryRun, jsonOutput, results });
         } else {
           console.log(result.status === 'skipped' ? `SALTEADA: ${reasonText(result.error)}` : `NO SE PUDO: ${result.error || result.status}`);
         }
@@ -1899,6 +1978,7 @@ function main() {
     // Wait for job cards to load (in-page polling, not shell sleep)
     waitFor(`document.querySelectorAll(${JSON.stringify(CARD_SEL)}).length > 0`, { timeout: 15000, session: SESSION });
     sleep(1500);
+    { const sign = warningSign(''); if (sign) stopForSign(sign, { where: 'durante una búsqueda', jsonOutput: false, results: [] }); }
     loadAllCards();
     // Try DOM extraction first (more reliable, gets all cards)
     let got = uniqueJobs(findEasyApplyJobsFromDOM());
@@ -1965,11 +2045,11 @@ function main() {
       if (sc.skip) { leftOut.push({ ...j, reason: sc.reason }); continue; }
       const w = cvChoice.chooseCv({ title: j.role, description: j.description, location: j.location }, cvSettings(userData));
       const sal = j.salaryFound;
-      would.push({ ...j, cv: w.file, cv_reason: w.reason, salary_text: sal ? `${sal.currency === 'USD' ? 'US$' : '$'} ${sal.monthlyMin === sal.monthlyMax ? sal.monthlyMax.toLocaleString('es-AR') : `${sal.monthlyMin.toLocaleString('es-AR')} a ${sal.monthlyMax.toLocaleString('es-AR')}`} por mes` : null, description: undefined });
+      would.push({ ...j, fit: fitLib.summary(j.fit), cv: w.file, cv_reason: w.reason, _fit: j.fit, salary_text: sal ? `${sal.currency === 'USD' ? 'US$' : '$'} ${sal.monthlyMin === sal.monthlyMax ? sal.monthlyMax.toLocaleString('es-AR') : `${sal.monthlyMin.toLocaleString('es-AR')} a ${sal.monthlyMax.toLocaleString('es-AR')}`} por mes` : null, description: undefined });
       sleep(1500 + Math.floor(Math.random() * 2500));
     }
     if (jsonOutput) {
-      console.log(JSON.stringify({ would_apply: would, left_out: leftOut.map((x) => ({ ...x, description: undefined })) }, null, 2));
+      console.log(JSON.stringify({ would_apply: would.map((x) => ({ ...x, _fit: undefined })), left_out: leftOut.map((x) => ({ ...x, description: undefined, fit: undefined })) }, null, 2));
     } else {
       if (leftOut.length) {
         console.log(`\nAl abrir los avisos descarté ${leftOut.length}:`);
@@ -1980,6 +2060,7 @@ function main() {
         console.log(`${i + 1}. ${j.role} en ${j.company}`);
         console.log(`   CV: ${j.cv || 'el que LinkedIn tenga marcado'} (${j.cv_reason})`);
         if (j.salary_text) console.log(`   Salario publicado: ${j.salary_text}`);
+        fitLines(j._fit).forEach((l) => console.log(l));
       });
     }
     if (!jobUrl && userData.prefs.collect_external !== false) {
@@ -2010,6 +2091,8 @@ function main() {
 
     // Check if already applied (Spanish: "Solicitud enviada", English: "Application sent")
     const preSnap = snapshot();
+    const preSign = warningSign('');
+    if (preSign) { console.log('LinkedIn mostró un aviso: freno acá'); stopForSign(preSign, { dryRun, jsonOutput, results }); }
     if (preSnap.includes('Solicitud enviada') || preSnap.includes('Application sent') || preSnap.includes('application was sent')) {
       console.log('YA POSTULADO: lo salteo');
       results.push({ ...job, status: 'already_applied' });
@@ -2052,11 +2135,9 @@ function main() {
         console.log(`FALTAN RESPUESTAS (${result.questions.length}): no se envió; quedaron como preguntas pendientes`);
         recordNeedsAnswers(job, result.questions);
         break;
-      case 'captcha':
-        console.log('CAPTCHA: freno acá');
-        console.log('\n*** LinkedIn pidió una verificación (captcha). Resolvela a mano en la ventana de Chrome y volvé a intentar más tarde. ***');
-        if (jsonOutput) console.log(JSON.stringify(results, null, 2));
-        process.exit(1);
+      case 'warning':
+        console.log(`AVISO DE LINKEDIN (${result.error}): freno acá`);
+        stopForSign(result.sign, { dryRun, jsonOutput, results });
         break;
       case 'cv_problem':
         console.log(`NO SE ENVIÓ POR EL CV: ${result.error}`);

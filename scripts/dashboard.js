@@ -50,7 +50,9 @@ async function fetchPipelineData() {
   try {
     const { rows: apps } = await client.query(`
       SELECT id, platform, company, role, url, status, applied_at,
-             data->>'source' AS source, data->>'notes' AS notes, data->>'location' AS location
+             data->>'source' AS source, data->>'notes' AS notes, data->>'location' AS location,
+             data->'stage_history' AS stage_history, data->'followups' AS followups, data->>'followup_at' AS followup_at,
+             (data->>'followup_off')::boolean AS followup_off, data->'fit' AS fit, (data->>'description') IS NOT NULL AS has_desc
       FROM applications
       WHERE user_id = ${USER_ID} AND status <> 'skipped'
       ORDER BY applied_at DESC NULLS LAST, id DESC
@@ -66,14 +68,27 @@ async function fetchPipelineData() {
       LIMIT 10
     `).catch(() => ({ rows: [] }));
 
-    const { rows: userRows } = await client.query(`SELECT name FROM users WHERE id = ${USER_ID}`).catch(() => ({ rows: [{ name: '' }] }));
+    const { rows: userRows } = await client.query(`SELECT name, data->'form_answers'->>'first_name' AS first FROM users WHERE id = ${USER_ID}`).catch(() => ({ rows: [{ name: '' }] }));
+    const fu = require('../lib/followup');
+    const first = userRows[0]?.first || '';
 
     return {
-      apps: apps.map((r) => ({
-        id: r.id, company: r.company || '', role: r.role || '', url: webUrl(r.url),
-        status: r.status, applied_at: r.applied_at, location: r.location || '', origin: originOf(r),
-      })),
+      apps: apps.map((r) => {
+        const base = { status: r.status, applied_at: r.applied_at, stage_history: r.stage_history, followups: r.followups, followup_at: r.followup_at, followup_off: r.followup_off, role: r.role, company: r.company };
+        const st = fu.status(base);
+        const f = r.fit && typeof r.fit === 'object' ? r.fit : null;
+        return {
+          id: r.id, company: r.company || '', role: r.role || '', url: webUrl(r.url),
+          status: r.status, applied_at: r.applied_at, location: r.location || '', origin: originOf(r),
+          last_move: fu.lastMove(base),
+          history: (Array.isArray(r.stage_history) ? r.stage_history : []).slice(-8).map((h) => ({ stage: h.stage, from: h.from, at: h.moved_at })),
+          followup: st ? { ...st, draft: st.due ? fu.draft(base, { firstName: first }) : null } : null,
+          fit: f ? { score: f.score, parts: f.parts || [], have: f.have || [], reworded: f.reworded || [], missing: f.missing || [] } : null,
+          has_desc: !!r.has_desc,
+        };
+      }),
       skipped: skipped[0] ? skipped[0].n : 0,
+      novedades: (() => { try { return require('../lib/novedades').pending().map((n) => ({ id: n.id, app_id: n.app_id, company: n.company, role: n.role, to: n.to_stage, why: n.why, mail: n.mail })); } catch { return []; } })(),
       messages,
       userName: userRows[0]?.name || '',
       stages: MOVABLE_STAGES,
@@ -84,8 +99,38 @@ async function fetchPipelineData() {
   }
 }
 
+// Shared client code for the fit box (Avisos para revisar and Seguimiento), inlined in the page (strict CSP).
+let _fitUi = null;
+function fitUi() {
+  if (_fitUi === null) { try { _fitUi = fs.readFileSync(path.join(REPO_ROOT, 'scripts', 'templates', 'fit-ui.js'), 'utf8'); } catch { _fitUi = ''; } }
+  return _fitUi;
+}
+
+// Follow-up reminders (lib/followup.js): the user made one, postponed it or turned it off.
+async function setFollowup(id, action, days) {
+  const client = await getDb();
+  try {
+    const cur = await client.query(`SELECT data FROM applications WHERE id = $1 AND user_id = ${USER_ID}`, [id]);
+    if (!cur.rows.length) return { ok: false, error: 'No encontré esa postulación' };
+    const data = cur.rows[0].data || {};
+    const now = new Date();
+    if (action === 'hecho') {
+      data.followups = [...(Array.isArray(data.followups) ? data.followups : []), now.toISOString()].slice(-10);
+      delete data.followup_at;
+    } else if (action === 'posponer') {
+      const n = Number.isInteger(days) && days >= 1 && days <= 60 ? days : 7;
+      data.followup_at = new Date(now.getTime() + n * 86400000).toISOString();
+    } else if (action === 'apagar') data.followup_off = true;
+    else if (action === 'prender') { delete data.followup_off; delete data.followup_at; }
+    await client.query(`UPDATE applications SET data = $1::jsonb WHERE id = $2 AND user_id = ${USER_ID}`, [JSON.stringify(data), id]);
+    return { ok: true };
+  } finally {
+    await client.end();
+  }
+}
+
 // Move one application to another stage, keeping the history of moves.
-async function moveStage(id, stage) {
+async function moveStage(id, stage, by = 'tablero') {
   const client = await getDb();
   try {
     const cur = await client.query(`SELECT status, data FROM applications WHERE id = $1 AND user_id = ${USER_ID}`, [id]);
@@ -94,7 +139,7 @@ async function moveStage(id, stage) {
     if (from === stage) return { ok: true, from, stage };
     const data = cur.rows[0].data || {};
     const history = Array.isArray(data.stage_history) ? data.stage_history : [];
-    history.push({ stage, from, moved_at: new Date().toISOString(), by: 'tablero' });
+    history.push({ stage, from, moved_at: new Date().toISOString(), by });
     await client.query(`UPDATE applications SET status = $1, data = $2::jsonb WHERE id = $3 AND user_id = ${USER_ID}`,
       [stage, JSON.stringify({ ...data, stage_history: history.slice(-50) }), id]);
     return { ok: true, from, stage };
@@ -185,6 +230,56 @@ function main() {
       return r;
     },
 
+    // Gmail suggestions (lib/novedades.js): the user applies or ignores each one.
+    'POST /api/novedades': async (req) => {
+      const body = await readBody(req);
+      const nov = require('../lib/novedades');
+      const s = nov.pending().find((x) => x.id === Number(body.id));
+      if (!s) throw new HttpError(404, 'Esa novedad ya no está pendiente');
+      if (body.action === 'ignorar') { nov.resolve(s.id, 'ignorada'); return { ok: true }; }
+      if (body.action !== 'aplicar') throw new HttpError(400, 'Acción desconocida');
+      if (!MOVABLE_STAGES.includes(s.to_stage)) throw new HttpError(400, 'Etapa inválida');
+      const r = await moveStage(Number(s.app_id), s.to_stage, 'gmail');
+      if (!r.ok) throw new HttpError(404, r.error);
+      nov.resolve(s.id, 'aplicada');
+      return { ok: true, from: r.from, stage: s.to_stage };
+    },
+    'POST /api/seguimiento': async (req) => {
+      const body = await readBody(req);
+      const id = Number(body.id);
+      if (!Number.isInteger(id) || id < 1) throw new HttpError(400, 'Falta la postulación');
+      if (!['hecho', 'posponer', 'apagar', 'prender'].includes(body.action)) throw new HttpError(400, 'Acción desconocida');
+      const r = await setFollowup(id, body.action, Number(body.days));
+      if (!r.ok) throw new HttpError(404, r.error);
+      return r;
+    },
+    // Instructions for the user's own AI: a CV adapted to one job, without inventing anything (lib/fit.js).
+    'POST /api/cv-aviso': async (req) => {
+      const body = await readBody(req);
+      const id = Number(body.id);
+      if (!Number.isInteger(id) || id < 1 || !['externo', 'postulacion'].includes(body.kind)) throw new HttpError(400, 'Pedido inválido');
+      const confirmed = (Array.isArray(body.confirmed) ? body.confirmed : []).map((t) => String(t).slice(0, 80)).slice(0, 30);
+      const fitLib = require('../lib/fit');
+      return store.withDb(async (c) => {
+        await store.ensureSchema(c);
+        const d = (await store.getUserData(c)) || {};
+        const cvText = typeof d.cv_text === 'string' ? d.cv_text : '';
+        if (!cvText.trim()) throw new HttpError(400, 'Primero cargá el texto de tu CV en Configuración (sección CV).');
+        let job;
+        if (body.kind === 'externo') {
+          const e = require('../lib/external').load().find((j) => j.id === id);
+          if (!e) throw new HttpError(404, 'No encontré ese aviso');
+          job = { role: e.role, company: e.company, location: e.location, description: (e.fit && e.fit.description) || '' };
+        } else {
+          const r = await c.query(`SELECT role, company, data->>'location' AS location, data->>'description' AS description FROM applications WHERE id = $1 AND user_id = $2`, [id, store.USER_ID]);
+          if (!r.rows.length) throw new HttpError(404, 'No encontré esa postulación');
+          job = r.rows[0];
+        }
+        const fit = job.description ? fitLib.score(job, { prefs: d.job_preferences || {}, profile: d.profile || {}, formAnswers: d.form_answers || {}, cvText }) : null;
+        return { prompt: fitLib.cvPrompt({ job, cvText, fit, confirmed }), score: fit ? fit.score : null };
+      });
+    },
+
     'GET /api/config': async () => {
       const data = await store.withDb(async (c) => { await store.ensureSchema(c); return (await store.getUserData(c)) || {}; });
       const fields = Object.fromEntries(Object.entries(cfg.FIELDS).map(([k, f]) => [k, { type: f.type, label: f.label, values: f.values, maxLen: f.maxLen }]));
@@ -212,13 +307,25 @@ function main() {
           `SELECT count(*) FILTER (WHERE status NOT IN ('discovered','skipped'))::int AS total,
                   count(*) FILTER (WHERE data->'review'->>'state' = 'pending')::int AS queue
            FROM applications WHERE user_id = $1`, [store.USER_ID]);
-        return { data, counts: counts.rows[0] || { total: 0, queue: 0 } };
+        // Today's LinkedIn count for the daily cap, read here instead of in a second process.
+        let today = null;
+        try {
+          const hz = require('../lib/humanize');
+          const st = hz.settingsFrom(data && data.automation);
+          const r = await c.query(hz.todaySql(st.timezone));
+          if (r.rows[0]) today = { n: Number(r.rows[0].n) || 0, first: r.rows[0].first || null };
+        } catch { /* shown as unknown */ }
+        return { data, counts: counts.rows[0] || { total: 0, queue: 0 }, today };
       });
       const d = info.data || {};
       const settings = cfg.extract(d);
       const file = d.tracking && d.tracking.file;
       let gate = null;
-      try { gate = require('../lib/humanize').gate(); } catch { /* shown as unknown */ }
+      try {
+        if (info.today) gate = require('../lib/humanize').gate({ settings: d.automation, done: info.today.n, first: info.today.first });
+      } catch { /* shown as unknown */ }
+      let pause = null;
+      try { const p = require('../lib/safety').active(); if (p) pause = { reason: p.reason, text: p.text, until: p.until, since: p.since }; } catch { /* none */ }
       const finite = (n) => (Number.isFinite(n) ? n : null);
       return {
         database: dbm.describe(),
@@ -230,9 +337,11 @@ function main() {
         tracking: { file: file || null, exists: !!(file && fs.existsSync(file)), log_file: store.logFileFrom(d) },
         pending_questions: (d.pending_questions || []).length,
         review_queue: info.counts.queue,
+        novedades: (() => { try { return require('../lib/novedades').pending().length; } catch { return 0; } })(),
         externos: (() => { try { const l = require('../lib/external').load(); return { elegir: l.filter((j) => ['pendiente', 'sin revisar'].includes(j.status)).length, agente: l.filter((j) => j.status === 'para el agente').length }; } catch { return null; } })(),
         applications: info.counts.total,
         today: gate ? { allowed: gate.allowed, message: gate.message, cap: finite(gate.cap), done: gate.done, remaining: finite(gate.remaining) } : null,
+        pause,
         job: jobs.status(1e9),
       };
     },
@@ -301,7 +410,12 @@ function main() {
           if (hit) ext.mark(e.id, hit.state === 'submitted' ? 'postulado' : 'descartado', hit.state === 'submitted' ? 'enviada por el agente' : 'la rechazaste en la cola');
         }
       } catch { /* the list still shows */ }
-      return { items: ext.load().map((j) => ({ ...j, url: webUrl(j.url) })) };
+      return {
+        items: ext.load().map((j) => {
+          const f = j.fit && typeof j.fit === 'object' ? j.fit : null;
+          return { ...j, url: webUrl(j.url), fit: f ? { score: f.score, parts: f.parts || [], have: f.have || [], reworded: f.reworded || [], missing: f.missing || [] } : null, has_desc: !!(f && f.description) };
+        }),
+      };
     },
     'GET /api/cola': async () => {
       const review = require('../lib/review');
@@ -418,6 +532,12 @@ function main() {
       } catch (e) { throw new HttpError(400, e.message); }
     },
     'POST /api/stop': async () => jobs.stop(),
+    // Safety pause on LinkedIn (lib/safety.js): the user resumes by hand.
+    'POST /api/pausa': async (req) => {
+      const body = await readBody(req);
+      if (body.action !== 'reanudar') throw new HttpError(400, 'Acción desconocida');
+      return require('../lib/safety').clear();
+    },
 
     'POST /api/sync': async () => {
       const res = await store.withDb(async (c) => { await store.ensureSchema(c); return store.syncTracking(c); });
@@ -505,7 +625,8 @@ function main() {
     if (req.method !== 'GET') { res.writeHead(405); res.end('Method not allowed'); return; }
     const page = PAGES[url.pathname];
     if (page) {
-      const html = fs.readFileSync(path.join(REPO_ROOT, 'scripts', 'templates', page), 'utf8').split('__CONFIG_TOKEN__').join(TOKEN);
+      const html = fs.readFileSync(path.join(REPO_ROOT, 'scripts', 'templates', page), 'utf8').split('__CONFIG_TOKEN__').join(TOKEN)
+        .split('/*__FIT_UI__*/').join(fitUi());
       res.writeHead(200, { 'Content-Type': 'text/html; charset=utf-8' });
       res.end(html);
       return;
@@ -528,6 +649,8 @@ function main() {
     console.log(`\n  Job Seeker: panel abierto en ${url}\n`);
     console.log('  Dejá esta ventana abierta mientras lo uses. Para cerrarlo: cerrá esta ventana.\n');
     if (open) openInBrowser(url);
+    // A scheduled run made by an older version is registered again with the hidden launcher.
+    setTimeout(() => { try { if (require('../lib/schedule').upgrade()) console.log('  Actualicé la tarea programada: la corrida automática ya no abre una ventana negra.\n'); } catch { /* keeps the old one */ } }, 3000);
   });
 }
 

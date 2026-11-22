@@ -18,7 +18,7 @@
   .tabs { display:flex; gap:8px; flex-wrap:wrap; margin:16px 0 0; }
   .tabs button { font:inherit; padding:7px 14px; border-radius:20px; border:1px solid var(--line); background:var(--card); color:var(--text); cursor:pointer; }
   .tabs button.on { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
-  .item { display:grid; grid-template-columns:1fr auto; gap:12px; align-items:center; border-top:1px solid var(--line); padding:12px 0; }
+  .item { display:grid; grid-template-columns:1fr auto; gap:12px; align-items:start; border-top:1px solid var(--line); padding:12px 0; }
   .item:first-child { border-top:0; }
   .role { font-weight:600; } .role a { color:var(--text); }
   .meta { color:var(--muted); font-size:14px; }
@@ -48,12 +48,14 @@
     <h2>Avisos de LinkedIn sin solicitud sencilla</h2>
     <p class="sub">Son los avisos con botón "Solicitar", que llevan al sitio de la empresa, y que pasaron tus filtros. Abrí el aviso, y elegí: <b>Para el agente</b> (el agente de Claude arranca en el momento y se postula en el sitio de la empresa), <b>Me postulé yo</b> (queda registrado y no vuelve a aparecer) o <b>Descartar</b>. El agente es opcional y necesita Claude Code instalado; sin él, te postulás vos desde el aviso y tocás <b>Me postulé yo</b>. Los marcados "sin revisar" pasaron el filtro de título, empresa, lugar y salario, pero todavía no se leyó la descripción: la próxima corrida la lee y, si no pasa, los descarta solo.</p>
     <div class="tabs" id="tabs"></div>
+    <p class="sub" id="sortrow" hidden><label>Ordenar: <select id="sort"><option value="fecha">más nuevos primero</option><option value="afinidad">mayor afinidad primero</option></select></label></p>
     <p id="msg"></p>
   </section>
   <section id="list"></section>
 </main>
 <script>
 const TOKEN = "__CONFIG_TOKEN__";
+/*__FIT_UI__*/
 const $ = (id) => document.getElementById(id);
 const api = async (path, body) => {
   const opt = { headers: { "X-Config-Token": TOKEN } };
@@ -71,6 +73,8 @@ const TABS = [
   ["descartados", "Descartados", ["descartado"]],
 ];
 let tab = "elegir", items = [], cola = [], pendingQ = 0;
+$("sort").onchange = () => { try { localStorage.setItem("js-avisos-orden", $("sort").value); } catch { /* ignore */ } render(); };
+try { const o = localStorage.getItem("js-avisos-orden"); if (o) $("sort").value = o; } catch { /* ignore */ }
 const fmt = (iso) => { try { return new Date(iso).toLocaleDateString("es-AR", { day: "2-digit", month: "2-digit" }); } catch { return ""; } };
 
 function el(tag, cls, text) { const e = document.createElement(tag); if (cls) e.className = cls; if (text !== undefined) e.textContent = text; return e; }
@@ -98,7 +102,9 @@ function render() {
   });
   const sts = TABS.find((t) => t[0] === tab)[2];
   if (!sts) return renderCola();
-  const rows = items.filter((j) => sts.includes(j.status)).sort((a, b) => (b.found_at || "").localeCompare(a.found_at || ""));
+  const byFit = $("sort").value === "afinidad";
+  $("sortrow").hidden = !items.some((j) => j.fit);
+  const rows = items.filter((j) => sts.includes(j.status)).sort((a, b) => (byFit ? ((b.fit ? b.fit.score : -1) - (a.fit ? a.fit.score : -1)) : 0) || (b.found_at || "").localeCompare(a.found_at || ""));
   const list = $("list"); list.textContent = "";
   if (!rows.length) {
     list.appendChild(el("p", "empty", tab === "elegir" ? "No hay avisos para elegir. Aparecen después de cada simulación o postulación." : "Nada por acá."));
@@ -113,9 +119,11 @@ function render() {
     r.appendChild(a);
     if (j.status === "sin revisar") r.appendChild(el("span", "badge sr", "sin revisar la descripción"));
     if (j.status === "en cola") r.appendChild(el("span", "badge", "en cola, espera tu aprobación"));
+    if (j.fit) r.appendChild(fitBadge(j.fit));
     info.appendChild(r);
     info.appendChild(el("div", "meta", [j.company, j.location, j.salary ? "Salario: " + j.salary : "", "encontrado el " + fmt(j.found_at)].filter(Boolean).join(" · ")));
     if (j.note && (j.status === "descartado" || j.status === "postulado")) info.appendChild(el("div", "meta", "Motivo: " + j.note));
+    if (j.fit && j.status !== "descartado") info.appendChild(fitDetails(j.fit, { kind: "externo", id: j.id, hasDesc: j.has_desc }));
     row.appendChild(info);
     const acts = el("div", "acts");
     const open = el("a", "b", "Abrir aviso"); if (j.url) open.href = j.url; open.target = "_blank"; open.rel = "noopener noreferrer"; acts.appendChild(open);

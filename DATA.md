@@ -24,6 +24,9 @@ Single row. Structured columns + `data` JSONB for semi-structured profile info.
 | `profile` | object | CV extraction: name, title, summary, skills, experience, education, languages, projects, github, blog, cv_url, cv_path | `profile` | `apply`, `targets`, `news`, `daily`, `gmail-send.js` (cv_path) |
 | `job_preferences` | object | 30 questionnaire answers with Must/Strong/Nice weights: role_types, seniority, location, modalities, salary, equity, stack, ai_focus, ai_role_type, deal_breakers, industries_preferred, industries_avoid, etc. | `profile` | `apply`, `targets`, `news`, `daily` |
 | `job_preferences.target_titles`, `avoid`, `description_avoid`, `work_modes`, `posted_within`, `search_keywords` | arrays / string | Search and title filter used by `linkedin-easy-apply.js` (see `lib/job-filter.js`). `target_titles` is required |
+| `job_preferences.min_fit` | integer 0-100 | Optional minimum fit (`lib/fit.js`); jobs below it are not applied to. Empty or 0: no minimum |
+| `automation` | object | Pace and limits (`lib/humanize.js`): `timezone`, `start_hour`, `end_hour`, `daily_cap_min`, `daily_cap_max`, `rest_days`, `half_days`, `company_cap`, `ramp_weeks` (gradual start, default 2) |
+| `cv_text` | string | Plain text of the user's CV. Read by `lib/fit.js` (fit and key terms) and for the AI prompt of a CV adapted to one job. Never changed by the program |
 | `form_answers` | object | Standard answers for Easy Apply and other job forms: `python_experience`, `ai_experience`, `openai_experience`, `english_level`, `spanish_level`, `location`, `current_company`, `linkedin_url`, `blog_url`, `salary_usd`, `salary_usd_max`, `salary_cop`, `notice_period`, `availability_date`, `genai_tools`, `aws_experience`, `english_comfort`, `diversity_accessibility`, `diversity_gender`, `diversity_ethnicity`, `disability`, `sponsorship`, `relative_at_company`, `consent_future_jobs`, `seniority`. Missing keys = field skipped (Gold Rule 5c) | `onboarding`, `apply` (auto-save when user answers new question) | `linkedin-easy-apply.js`, `apply` flow |
 | `form_answers.qa` | object | Question bank: `{ "<question as worded by a form>": "<the user's answer>" }`. Written only by `scripts/targets.js questions answer` |
 | `form_answers.experience_years` | object | `{ "<topic>": "<years>" }` in the user's own terms; answers "years of experience with X" questions |
@@ -60,7 +63,7 @@ Every job application registered.
 | `url` | TEXT | Job posting URL (used for dedup) |
 | `status` | TEXT | Pipeline stage (canonical, see below). Active: `discovered`, `contacted`, `applied`, `in_review`, `screening`, `interview`, `offer`, `hired`. Closed: `rejected`, `withdrawn`, `skipped` |
 | `applied_at` | TIMESTAMPTZ | Default NOW() |
-| `data` | JSONB | Match reason, method (easy_apply), location, questions_answered count, `stage_history` (audit trail of moves via `pipeline.js --move`) |
+| `data` | JSONB | Match reason, method (easy_apply), location, questions_answered count, `stage_history` (audit trail of moves: `[{stage, from, moved_at, by}]`, `by` = tablero, gmail, pipeline), `fit` (`{score, parts, have, reworded, missing, at}` from `lib/fit.js`), `description` (job text excerpt, up to 8000 chars), `followups` (ISO dates of follow-ups the user made), `followup_at` (reminder postponed until), `followup_off` (no reminders) |
 
 Access:
 ```bash
@@ -190,6 +193,9 @@ Written by: `memory` (cross-cutting), `onboarding` (sets `tooling.browser_mode`)
 |---|---|---|---|
 | `PLATFORMS.md` | Platform catalog (35 platforms) + alert tracking table (which platforms have alerts configured) | `radar` (alert tracking section), manual | `radar`, `profile` (platform tiering), `apply` |
 | `AGENTS.md` | Operational rules, flow map, this data map reference | manual | agent (every session) |
+| `datos/avisos-externos.json` | LinkedIn jobs without Easy Apply that passed the filters, with `fit` (and the description excerpt) when the description was read | `linkedin-easy-apply.js`, `externos.js`, panel | panel ("Avisos para revisar"), agent (rule 19b) |
+| `datos/pausa-linkedin.json` | Safety pause after a LinkedIn warning sign: `{reason, detail, since, until, cleared_at}` (`lib/safety.js`) | `linkedin-easy-apply.js`, panel ("Reanudar") | `lib/humanize.js` gate, `auto-run.js`, panel |
+| `datos/sugerencias-gmail.json` | Stage suggestions read from the Gmail list (sender, subject, preview, date): `{id, key, state, mail, kind, app_id, to_stage, why}` (`lib/novedades.js`) | `scripts/gmail-novedades.js` | panel ("Seguimiento": Aplicar / Ignorar) |
 | `agent-browser.json` | agent-browser config: `namespace`, `profile` (`.browser-profile`), `headed`, output limits. Auto-created by the wrapper on first run | wrapper `browser.js` (first run) | `agent-browser` (auto-loaded via `AGENT_BROWSER_CONFIG`) |
 
 ## Scripts

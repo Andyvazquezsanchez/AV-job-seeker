@@ -86,6 +86,20 @@
   #toast button { background:none; border:0; color:#9cc3ff; padding:0; text-decoration:underline; }
   #toast.err { background:var(--err); }
 
+  /* detail and follow-up */
+  .open { background:none; border:0; padding:0; color:inherit; text-align:left; font:inherit; cursor:pointer; }
+  .open:hover .co, .open:hover b { text-decoration:underline; }
+  .card .open { display:block; width:100%; }
+  .fu { display:inline-block; font-size:11px; border-radius:999px; padding:0 7px; background:var(--warn); color:#fff; font-weight:600; }
+  dialog#det { max-width:720px; width:calc(100% - 32px); border:1px solid var(--line); border-radius:12px; padding:0; background:var(--card); color:var(--text); }
+  dialog#det::backdrop { background:rgba(0,0,0,.45); }
+  .dhead { padding:16px 20px 10px; border-bottom:1px solid var(--line); display:flex; justify-content:space-between; gap:12px; align-items:flex-start; }
+  .dbody { padding:12px 20px 20px; max-height:70vh; overflow:auto; }
+  .dbody h3 { font-size:14px; margin:14px 0 6px; }
+  .dbody textarea { width:100%; min-height:130px; font:14px/1.45 system-ui, sans-serif; padding:8px 10px; border:1px solid var(--line); border-radius:6px; background:var(--bg); color:var(--text); }
+  .drow { display:flex; gap:8px; flex-wrap:wrap; margin-top:8px; }
+  .drow button.primary { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
+  ul.hist { margin:0; padding-left:18px; font-size:13px; color:var(--muted); }
   @media (max-width:760px) { .grid2 { grid-template-columns:1fr; } .frow { grid-template-columns:110px 1fr 40px; } .hide-sm { display:none; } }
 </style>
 </head>
@@ -108,6 +122,7 @@
         <button data-view="tablero" role="tab">Tablero</button>
         <button data-view="lista" role="tab">Lista</button>
       </div>
+      <button id="gmail" title="Lee la lista de tus correos recientes (asunto y vista previa) en la ventana de Chrome del programa y te sugiere cambios de etapa. No abre, marca ni responde ningún correo.">Buscar novedades en Gmail</button>
       <button id="reload" title="Volver a leer los datos">Actualizar</button>
     </div>
   </div>
@@ -134,10 +149,12 @@
 
   <div id="view"></div>
 </main>
+<dialog id="det" aria-labelledby="dtitle"><div class="dhead"><div><h2 id="dtitle" style="margin:0"></h2><p class="meta" id="dsub"></p></div><button id="dclose" type="button">Cerrar</button></div><div class="dbody" id="dbody"></div></dialog>
 <div id="toast" role="status" aria-live="polite"><span id="toastmsg"></span><button id="undo" type="button">Deshacer</button></div>
 
 <script>
 const TOKEN = '__CONFIG_TOKEN__';
+/*__FIT_UI__*/
 const STAGES = {
   discovered: { label: 'Detectadas', one: 'Detectada', color: '#929295' },
   contacted: { label: 'Contactadas', one: 'Contactada', color: '#22a6c3' },
@@ -178,6 +195,7 @@ function fmtDate(iso) {
   const midnight = d.getUTCHours() === 0 && d.getUTCMinutes() === 0;
   return d.toLocaleDateString('es-AR', midnight ? { timeZone: 'UTC', day: '2-digit', month: '2-digit', year: '2-digit' } : { day: '2-digit', month: '2-digit', year: '2-digit' });
 }
+const dias = (n) => (n === 1 ? '1 día' : n + ' días');
 function ago(iso) {
   if (!iso) return '';
   const days = Math.floor((Date.now() - new Date(iso)) / 86400000);
@@ -246,7 +264,8 @@ function renderSummary(list) {
   const funnel = ORDER.filter((st) => count(st) > 0 || ['applied', 'interview', 'offer'].includes(st)).map((st) =>
     `<div class="frow"><span>${STAGES[st].label}</span><div class="fbar"><div style="width:${Math.round(count(st) * 100 / max)}%;background:${STAGES[st].color}"></div></div><span class="c">${count(st)}</span></div>`).join('');
   const att = list.filter((a) => ATTENTION.includes(a.status)).sort((a, b) => ATTENTION.indexOf(b.status) - ATTENTION.indexOf(a.status));
-  const item = (a, right) => `<li><div class="who"><b>${esc(a.company || 'Sin empresa')}</b><span>${esc(a.role)}</span></div><span class="tag">${right}</span></li>`;
+  const item = (a, right) => `<li><button class="open who" data-open="${a.id}"><b>${esc(a.company || 'Sin empresa')}</b><span>${esc(a.role)}</span></button><span class="tag">${right}</span></li>`;
+  const due = list.filter((a) => a.followup && a.followup.due).sort((a, b) => b.followup.days - a.followup.days);
   const recent = list.slice(0, 8);
   return `
   <section style="background:none;border:0;padding:0">
@@ -257,6 +276,17 @@ function renderSummary(list) {
   <section><h2>Embudo</h2><div class="funnel">${funnel}</div>
     ${DATA.skipped ? `<p class="hint">Además, los filtros descartaron ${DATA.skipped} avisos que no coincidían con lo que buscás.</p>` : ''}
   </section>
+  ${(DATA.novedades || []).length ? `<section><h2>Novedades de tu Gmail (${DATA.novedades.length})</h2>
+    <p class="sub">Correos recientes que parecen hablar de tus postulaciones. Nada cambia hasta que tocás Aplicar; revisá el correo si tenés dudas.</p>
+    <ul class="items">${DATA.novedades.map((n) => `<li><div class="who"><b>${esc(n.company)}</b><span>${esc(n.role)}: ${esc(n.why)}. Sugerencia: pasar a ${esc((STAGES[n.to] || {}).one || n.to)}.</span>
+      <span>"${esc(n.mail.subject)}"${n.mail.date ? ' · ' + esc(n.mail.date) : ''}${n.mail.link ? ` · <a href="${esc(n.mail.link)}" target="_blank" rel="noopener">Ver correo</a>` : ''}</span></div>
+      <span style="display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end"><button data-nov="${n.id}" data-act="aplicar">Aplicar</button><button data-nov="${n.id}" data-act="ignorar">Ignorar</button></span></li>`).join('')}</ul>
+  </section>` : ''}
+  ${due.length ? `<section><h2>Para hacer seguimiento (${due.length})</h2>
+    <p class="sub">Postulaciones sin novedades hace un tiempo. Abrí cada una para ver un borrador de mensaje; vos lo adaptás y lo enviás.</p>
+    <ul class="items">${due.slice(0, 10).map((a) => item(a, STAGES[a.status].one + ' · ' + dias(a.followup.days) + ' sin novedades')).join('')}</ul>
+    ${due.length > 10 ? `<p class="hint">Y ${due.length - 10} más: filtrá la lista por etapa o abrilas desde el tablero.</p>` : ''}
+  </section>` : ''}
   <div class="grid2">
     <section><h2>Requieren tu atención</h2>
       ${att.length ? `<ul class="items">${att.slice(0, 12).map((a) => item(a, STAGES[a.status].one)).join('')}</ul>` : '<p class="empty">Nada por ahora. Cuando una empresa te contacte, cambiá la etapa en Tablero o Lista y va a aparecer acá.</p>'}
@@ -274,10 +304,11 @@ function renderBoard(list) {
     const cards = list.filter((a) => a.status === st);
     const shown = colShown[st] || PAGE_COL;
     const body = cards.slice(0, shown).map((a) => `
-      <div class="card" draggable="true" data-id="${a.id}" title="Arrastrala a otra columna para cambiar la etapa">
-        <div class="co">${esc(a.company || 'Sin empresa')}</div>
-        <div class="ro">${esc(a.role)}</div>
-        <div class="ft"><span>${ago(a.applied_at)} · ${ORIGIN[a.origin] || ''}</span>${a.url ? `<a href="${esc(a.url)}" target="_blank" rel="noopener" draggable="false">Ver aviso</a>` : ''}</div>
+      <div class="card" draggable="true" data-id="${a.id}" title="Arrastrala a otra columna para cambiar la etapa; tocala para ver el detalle">
+        <button class="open" data-open="${a.id}"><div class="co">${esc(a.company || 'Sin empresa')}</div>
+        <div class="ro">${esc(a.role)}</div></button>
+        ${a.followup && a.followup.due ? '<div><span class="fu">Hacer seguimiento</span></div>' : ''}
+        <div class="ft"><span>${ago(a.applied_at)} · ${ORIGIN[a.origin] || ''}${a.fit ? ' · afinidad ' + a.fit.score : ''}</span>${a.url ? `<a href="${esc(a.url)}" target="_blank" rel="noopener" draggable="false">Ver aviso</a>` : ''}</div>
       </div>`).join('');
     const more = cards.length > shown ? `<button class="more" data-more="${st}">Ver ${Math.min(PAGE_COL, cards.length - shown)} más (quedan ${cards.length - shown})</button>` : '';
     return `<div class="col" data-stage="${st}">
@@ -289,7 +320,7 @@ function renderBoard(list) {
 }
 
 function renderList(list) {
-  const key = { company: (a) => a.company, role: (a) => a.role, stage: (a) => ORDER.indexOf(a.status), date: (a) => a.applied_at ? new Date(a.applied_at).getTime() : 0, origin: (a) => a.origin }[state.sort] || ((a) => 0);
+  const key = { company: (a) => a.company, role: (a) => a.role, stage: (a) => ORDER.indexOf(a.status), date: (a) => a.applied_at ? new Date(a.applied_at).getTime() : 0, origin: (a) => a.origin, fit: (a) => (a.fit ? a.fit.score : -1) }[state.sort] || ((a) => 0);
   const cmp = (x, y) => (typeof x === 'string' ? x.localeCompare(y, 'es', { numeric: true }) : x - y);
   const rows = [...list].sort((a, b) => cmp(key(a), key(b)) * state.dir);
   const pages = Math.max(1, Math.ceil(rows.length / state.per));
@@ -299,12 +330,13 @@ function renderList(list) {
   const opts = (cur) => ORDER.map((st) => `<option value="${st}"${st === cur ? ' selected' : ''}>${STAGES[st].one}</option>`).join('');
   return `<section style="padding:6px 12px 14px">
     <div style="overflow-x:auto"><table>
-      <thead><tr>${th('company', 'Empresa')}${th('role', 'Puesto')}${th('stage', 'Etapa')}${th('date', 'Fecha')}${th('origin', 'Origen', 'hide-sm')}<th>Aviso</th></tr></thead>
+      <thead><tr>${th('company', 'Empresa')}${th('role', 'Puesto')}${th('stage', 'Etapa')}${th('date', 'Fecha')}${th('fit', 'Afinidad', 'hide-sm')}${th('origin', 'Origen', 'hide-sm')}<th>Aviso</th></tr></thead>
       <tbody>${slice.map((a) => `<tr>
-        <td><b>${esc(a.company || 'Sin empresa')}</b></td>
+        <td><button class="open" data-open="${a.id}" title="Ver detalle"><b>${esc(a.company || 'Sin empresa')}</b></button>${a.followup && a.followup.due ? ' <span class="fu">Seguimiento</span>' : ''}</td>
         <td>${esc(a.role)}</td>
         <td><select data-stage-of="${a.id}" aria-label="Etapa de ${esc(a.company)}">${opts(a.status)}</select></td>
         <td style="white-space:nowrap">${fmtDate(a.applied_at)}</td>
+        <td class="hide-sm">${a.fit ? a.fit.score : ''}</td>
         <td class="hide-sm">${ORIGIN[a.origin] || ''}</td>
         <td>${a.url ? `<a href="${esc(a.url)}" target="_blank" rel="noopener">Abrir</a>` : ''}</td>
       </tr>`).join('')}</tbody>
@@ -338,10 +370,19 @@ async function move(id, stage, quiet) {
 
 function wire() {
   document.querySelectorAll('[data-go]').forEach((b) => b.onclick = () => { state.view = b.dataset.go; saveState(); render(); });
+  document.querySelectorAll('[data-open]').forEach((b) => b.onclick = () => openDetail(Number(b.dataset.open)));
+  document.querySelectorAll('[data-nov]').forEach((b) => b.onclick = async () => {
+    b.disabled = true;
+    try {
+      const r = await api('/api/novedades', { method: 'POST', body: JSON.stringify({ id: Number(b.dataset.nov), action: b.dataset.act }) });
+      toast(b.dataset.act === 'aplicar' ? 'Listo: ahora está en ' + STAGES[r.stage].one + '.' : 'Ignorada.');
+      await load();
+    } catch (e) { b.disabled = false; toast('No se pudo: ' + e.message, false, true); }
+  });
   document.querySelectorAll('[data-more]').forEach((b) => b.onclick = () => { const st = b.dataset.more; colShown[st] = (colShown[st] || PAGE_COL) + PAGE_COL; render(); });
   document.querySelectorAll('th[data-sort]').forEach((th) => th.onclick = () => {
     const k = th.dataset.sort;
-    if (state.sort === k) state.dir = -state.dir; else { state.sort = k; state.dir = k === 'date' ? -1 : 1; }
+    if (state.sort === k) state.dir = -state.dir; else { state.sort = k; state.dir = k === 'date' || k === 'fit' ? -1 : 1; }
     saveState(); render();
   });
   document.querySelectorAll('select[data-stage-of]').forEach((s) => s.onchange = () => move(Number(s.dataset.stageOf), s.value));
@@ -358,6 +399,91 @@ function wire() {
     col.addEventListener('dragleave', (e) => { if (!col.contains(e.relatedTarget)) col.classList.remove('over'); });
     col.addEventListener('drop', (e) => { e.preventDefault(); col.classList.remove('over'); const id = Number(e.dataTransfer.getData('text/plain')) || dragId; if (id) move(id, col.dataset.stage); });
   });
+}
+
+// ---------- detail: history, follow-up and fit ----------
+let detailId = null;
+function openDetail(id) {
+  const a = DATA.apps.find((x) => x.id === id);
+  if (!a) return;
+  detailId = id;
+  document.getElementById('dtitle').textContent = (a.company || 'Sin empresa') + ': ' + a.role;
+  document.getElementById('dsub').textContent = [STAGES[a.status].one, fmtDate(a.applied_at), ORIGIN[a.origin] || '', a.location].filter(Boolean).join(' · ');
+  const body = document.getElementById('dbody');
+  body.textContent = '';
+  const h = (t) => { const e = document.createElement('h3'); e.textContent = t; body.appendChild(e); };
+  const p = (t, cls) => { const e = document.createElement('p'); e.className = cls || 'sub'; e.textContent = t; body.appendChild(e); return e; };
+  const button = (label, fn, primary) => { const b = document.createElement('button'); b.type = 'button'; b.textContent = label; if (primary) b.className = 'primary'; b.onclick = fn; return b; };
+  if (a.url) { const l = document.createElement('a'); l.href = a.url; l.target = '_blank'; l.rel = 'noopener'; l.textContent = 'Abrir el aviso'; body.appendChild(l); }
+
+  const f = a.followup;
+  if (f) {
+    h('Seguimiento');
+    if (f.due) {
+      p(`Lleva ${dias(f.days)} sin novedades. Un mensaje corto a quien publicó el aviso o a alguien de selección de la empresa suele reactivar el proceso. Nada se envía solo: copiá el borrador, completá el nombre y adaptalo.`);
+      const ta = document.createElement('textarea'); ta.value = f.draft || ''; ta.setAttribute('aria-label', 'Borrador de seguimiento'); body.appendChild(ta);
+      const row = document.createElement('div'); row.className = 'drow';
+      row.appendChild(button('Copiar borrador', async (e) => { try { await navigator.clipboard.writeText(ta.value); e.target.textContent = 'Copiado'; } catch { ta.select(); } }));
+      row.appendChild(button('Ya hice seguimiento', () => followup(a.id, 'hecho'), true));
+      row.appendChild(button('Recordarme en 7 días', () => followup(a.id, 'posponer', 7)));
+      row.appendChild(button('No me lo recuerdes más', () => followup(a.id, 'apagar')));
+      body.appendChild(row);
+    } else if (f.postponed_until) p('Te lo recuerdo el ' + fmtDate(f.postponed_until) + '.');
+    else if (f.stale) {
+      p(`Lleva ${dias(f.days)} sin novedades. A esta altura un mensaje rara vez cambia algo; si querés ordenar el tablero, podés pasarla a Rechazada o Retirada.`);
+      const row = document.createElement('div'); row.className = 'drow';
+      row.appendChild(button('Pasar a Rechazada', () => { move(a.id, 'rejected'); document.getElementById('det').close(); }));
+      row.appendChild(button('Pasar a Retirada', () => { move(a.id, 'withdrawn'); document.getElementById('det').close(); }));
+      body.appendChild(row);
+    }
+    else if (f.count >= f.max) p(`Ya hiciste ${f.count} seguimientos; no te sugiero más para esta.`);
+    else p((f.days < 1 ? 'Tuvo movimiento hoy.' : `Sin novedades hace ${dias(f.days)}.`) + ` Te sugiero un seguimiento a los ${f.after} días sin movimiento` + (f.count ? ` (ya hiciste ${f.count}).` : '.'));
+  }
+
+  if (a.history && a.history.length) {
+    h('Movimientos');
+    const ul = document.createElement('ul'); ul.className = 'hist';
+    a.history.slice().reverse().forEach((x) => { const li = document.createElement('li'); li.textContent = fmtDate(x.at) + ': ' + ((STAGES[x.from] || {}).one || 'sin etapa') + ' → ' + ((STAGES[x.stage] || {}).one || x.stage); ul.appendChild(li); });
+    body.appendChild(ul);
+  }
+
+  h('Afinidad y palabras clave');
+  if (a.fit) { const r = document.createElement('div'); r.appendChild(fitBadge(a.fit)); body.appendChild(r); const d = fitDetails(a.fit, { kind: 'postulacion', id: a.id, hasDesc: a.has_desc }); d.open = true; body.appendChild(d); }
+  else p('Esta postulación no tiene afinidad calculada (es anterior a esta función, vino de tu planilla o no se pudo leer el aviso).');
+
+  const dlg = document.getElementById('det');
+  if (!dlg.open) dlg.showModal();
+}
+async function followup(id, action, days) {
+  try {
+    await api('/api/seguimiento', { method: 'POST', body: JSON.stringify({ id, action, days }) });
+    toast(action === 'hecho' ? 'Anotado: hiciste seguimiento.' : action === 'posponer' ? 'Te lo recuerdo en 7 días.' : 'Listo: no te lo recuerdo más.');
+    await load();
+    if (detailId === id) openDetail(id);
+  } catch (e) { toast('No se pudo guardar: ' + e.message, false, true); }
+}
+
+// ---------- Gmail news (read only) ----------
+async function gmailCheck() {
+  const b = document.getElementById('gmail');
+  b.disabled = true; b.textContent = 'Revisando Gmail...';
+  try {
+    const job = await api('/api/run', { method: 'POST', body: JSON.stringify({ action: 'gmail' }) });
+    toast('Revisando tu Gmail en la ventana de Chrome del programa. Tarda menos de un minuto.');
+    let st;
+    for (let i = 0; i < 90; i++) {
+      await new Promise((r) => setTimeout(r, 2000));
+      st = await api('/api/job?since=0');
+      if (st.id === job.id && !st.running) break;
+    }
+    await load();
+    const last = (st && st.lines || []).filter((l) => l.trim()).slice(-4).join(' ');
+    if (st && st.exitCode === 3) toast('Gmail pide iniciar sesión: hacelo en la ventana de Chrome del programa y volvé a tocar el botón.', false, true);
+    else if (st && st.exitCode === 0) toast((DATA.novedades || []).length ? 'Listo: mirá "Novedades de tu Gmail" en Resumen.' : 'Listo: no hay novedades nuevas para cambiar de etapa.');
+    else toast('No se pudo revisar Gmail: ' + (last || 'revisá el detalle en el Panel, en Actividad.'), false, true);
+    if ((DATA.novedades || []).length && state.view !== 'resumen') { state.view = 'resumen'; render(); }
+  } catch (e) { toast(e.message, false, true); }
+  b.disabled = false; b.textContent = 'Buscar novedades en Gmail';
 }
 
 // ---------- data ----------
@@ -380,6 +506,9 @@ function initFilters() {
   document.getElementById('clear').onclick = () => { Object.assign(state, { q: '', stage: '', period: '', origin: '', page: 1 }); ['q', 'fstage', 'fperiod', 'forigin'].forEach((id) => { document.getElementById(id).value = ''; }); colShown = {}; saveState(); render(); };
   document.querySelectorAll('.views button').forEach((b) => b.onclick = () => { state.view = b.dataset.view; saveState(); render(); });
   document.getElementById('reload').onclick = load;
+  document.getElementById('gmail').onclick = gmailCheck;
+  document.getElementById('dclose').onclick = () => { detailId = null; document.getElementById('det').close(); };
+  document.getElementById('det').addEventListener('close', () => { detailId = null; });
   document.getElementById('undo').onclick = () => { if (lastMove) { const m = lastMove; lastMove = null; document.getElementById('toast').style.display = 'none'; move(m.id, m.from, true); } };
 }
 
@@ -388,7 +517,7 @@ loadState();
 initFilters();
 load();
 // Refresh now and then, but never in the middle of a drag or while a list is open.
-setInterval(() => { if (dragId == null && !document.hidden && !(document.activeElement && document.activeElement.tagName === 'SELECT')) load(); }, 60000);
+setInterval(() => { if (dragId == null && detailId == null && !document.hidden && !(document.activeElement && document.activeElement.tagName === 'SELECT')) load(); }, 60000);
 </script>
 </body>
 </html>
