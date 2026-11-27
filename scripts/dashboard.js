@@ -384,7 +384,7 @@ function main() {
       const body = await readBody(req);
       const action = String(body.action || '');
       if (action === 'apply' && body.confirm !== true) throw new HttpError(400, 'Falta confirmar la postulación real');
-      const r = jobs.start(action, { max: body.max });
+      const r = jobs.start(action, { max: body.max, portales: body.portales, ats: body.ats });
       if (r.error) throw new HttpError(409, r.error);
       return r;
     },
@@ -594,7 +594,11 @@ function main() {
       const text = () => buf.toString('utf8').replace(/^﻿/, '');
       const json = () => { try { return JSON.parse(text()); } catch { throw new HttpError(400, 'Ese archivo no es un JSON válido'); } };
 
-      if (kind === 'cv') { const t = extract.textFromUpload(name, buf); return { ok: true, text: t.slice(0, 60000), ...extract.contactFromText(t) }; }
+      if (kind === 'cv') {
+        let t;
+        try { t = await extract.textFromUploadAsync(name, buf); } catch (e) { throw new HttpError(400, e.message); }
+        return { ok: true, text: t.slice(0, 60000), ...extract.contactFromText(t) };
+      }
       if (kind === 'perfil') {
         const { clean, errors } = cfg.sanitize(json());
         await store.withDb(async (c) => { await store.ensureSchema(c); await store.saveSettings(c, clean); });

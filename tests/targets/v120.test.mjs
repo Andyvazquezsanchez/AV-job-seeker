@@ -65,6 +65,49 @@ describe('Computrabajo, Bumeran and ZonaJobs', () => {
       .toEqual({ company: 'Acme SA', location: 'Caballito, Capital Federal', posted: 'Hace 2 días' });
     expect(p.parseCard('Recruiter', ['Recruiter', 'Postulación rápida', 'Presencial'])).toEqual({ company: '', location: '', posted: '' });
   });
+  it('reads real cards: confidential company, highlighted jobs, salary and long description lines', () => {
+    // Bumeran / ZonaJobs: "Confidencial" leaves the company empty; a short description line does not take its place.
+    expect(p.parseCard('Analista de RRHH', ['Actualizado hace 10 días', 'Analista de RRHH', 'Confidencial', 'Control de liquidaciones de sueldo', 'Pilar, Buenos Aires', 'Presencial']))
+      .toEqual({ company: '', location: 'Pilar, Buenos Aires', posted: 'Actualizado hace 10 días' });
+    // Computrabajo: highlighted jobs and salaries are not the company.
+    expect(p.parseCard('Analista de selección Jr', ['Se precisa Urgente  Empleo destacado', 'Analista de selección Jr', '4,1', 'Initech RRHH', 'Pilar, Buenos Aires', '$ 1.600.000,00 (Mensual)', 'Hace 2 días']))
+      .toEqual({ company: 'Initech RRHH', location: 'Pilar, Buenos Aires', posted: 'Hace 2 días' });
+    // A long description line that starts with the place is not the place.
+    expect(p.parseCard('Analista Sr', ['Analista Sr', 'Acme', 'Paraná, Entre RíosDesde Acme buscamos un/a Analista de Recursos Humanos Sr para sumarse al equipo', 'Paraná, Entre Ríos']))
+      .toEqual({ company: 'Acme', location: 'Paraná, Entre Ríos', posted: '' });
+    expect(() => new Function(`return ${p.extractCode('bumeran')}`)).not.toThrow();
+    expect(() => new Function(`return ${p.DESCRIPTION_CODE}`)).not.toThrow();
+    expect(() => new Function(`return ${p.APPLIED_CODE}`)).not.toThrow();
+  });
+  it('searches with the chosen recency and reads the age shown on each card', () => {
+    expect(p.SITES.computrabajo.search('Recursos Humanos', 1)).toBe('https://ar.computrabajo.com/trabajo-de-recursos-humanos?pubdate=1');
+    expect(p.SITES.computrabajo.search('Recursos Humanos', 2)).toBe('https://ar.computrabajo.com/trabajo-de-recursos-humanos?pubdate=3');
+    expect(p.SITES.bumeran.search('RRHH', 1)).toBe('https://www.bumeran.com.ar/empleos-publicacion-menor-a-2-dias-busqueda-rrhh.html');
+    expect(p.SITES.zonajobs.search('RRHH', 7)).toBe('https://www.zonajobs.com.ar/empleos-publicacion-menor-a-1-semana-busqueda-rrhh.html');
+    expect(p.postedDays('2days')).toBe(2);
+    expect(p.postedDays('')).toBe(7);
+    const now = new Date(2026, 10, 24, 1, 15);
+    expect(p.ageDays('Hace 7 horas', now)).toBe(0);
+    expect(p.ageDays('Ayer', now)).toBe(1);
+    expect(p.ageDays('Publicado hace 3 días', now)).toBe(3);
+    expect(p.ageDays('Actualizado hace más de 15 días', now)).toBe(16);
+    expect(p.ageDays('15 de noviembre (actualizada)', now)).toBe(9);
+    expect(p.ageDays('Postulación rápida', now)).toBe(null);
+  });
+  it('does not bring back jobs the user already applied to', () => {
+    expect(p.appliedInCard(['Analista de RRHH', 'Acme', 'Postulado'])).toBe(true);
+    expect(p.appliedInCard(['Analista de RRHH', 'Postulación rápida', '120 postulantes'])).toBe(false);
+    const apps = [
+      { company: 'Computrabajo', role: 'Analista de Selección y Administración de personal (Initech RRHH)' },
+      { company: 'Computrabajo', role: 'Analista de recursos humanos' },
+      { company: 'Globex SRL', role: 'Responsable de RRHH. Zona Norte' },
+    ];
+    expect(p.alreadyApplied({ company: 'Globex', role: 'Responsable de RRHH. Zona Norte' }, apps)).toBe(true);
+    expect(p.alreadyApplied({ company: 'Initech RRHH', role: 'Analista de Selección y Administración de Personal' }, apps)).toBe(true);
+    // A sheet row with no company matches by title only jobs that do not name their company either.
+    expect(p.alreadyApplied({ company: 'Importante empresa del sector gastronómico', role: 'Analista de Recursos Humanos' }, apps)).toBe(true);
+    expect(p.alreadyApplied({ company: 'Acme', role: 'Analista de Recursos Humanos' }, apps)).toBe(false);
+  });
 });
 
 describe('site passwords key protected with DPAPI (Windows)', () => {

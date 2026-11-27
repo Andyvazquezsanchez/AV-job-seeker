@@ -6,6 +6,10 @@ echo.
 echo  Job Seeker - instalacion
 echo  ------------------------
 echo.
+rem --- Abierto desde adentro del .zip: Windows lo copia a una carpeta temporal que despues se borra ---
+set "HERE=%~dp0"
+if /i not "%HERE:\AppData\Local\Temp\=%"=="%HERE%" goto :in_zip
+if /i not "%HERE:.zip\=%"=="%HERE%" goto :in_zip
 rem --- Node: el que viene incluido en el paquete, o el instalado en la computadora ---
 set "NODE=%~dp0runtime\node.exe"
 if exist "%NODE%" goto :node_ok
@@ -35,14 +39,10 @@ if errorlevel 1 (
   exit /b 1
 )
 
-rem --- Acceso directo en el Escritorio ---
+rem --- Accesos directos en el Escritorio y en el menu Inicio ---
 set "JS_DIR=%~dp0"
-powershell -NoProfile -Command "$d=[Environment]::GetFolderPath('Desktop'); $s=(New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path $d 'Job Seeker.lnk')); $s.TargetPath=(Join-Path $env:JS_DIR 'Abrir Job Seeker.bat'); $s.WorkingDirectory=$env:JS_DIR; $s.WindowStyle=7; $s.IconLocation=(Join-Path $env:SystemRoot 'System32\shell32.dll')+',22'; $s.Description='Abrir el panel de Job Seeker'; $s.Save()" >nul 2>nul
-if errorlevel 1 (
-  echo   [!]  No pude crear el acceso directo en el Escritorio. Podes abrir el programa con "Abrir Job Seeker.bat".
-) else (
-  echo   [ok] Acceso directo "Job Seeker" creado en el Escritorio
-)
+call :shortcut Desktop "en el Escritorio"
+call :shortcut Programs "en el menu Inicio"
 echo.
 echo  Instalacion terminada. Tus datos quedan en la carpeta "datos", dentro de esta carpeta.
 echo.
@@ -52,6 +52,27 @@ echo.
 echo  Ya podes cerrar esta ventana.
 timeout /t 8 >nul
 exit /b 0
+
+:shortcut
+rem Crea "Job Seeker.lnk" en la carpeta de Windows indicada (Desktop o Programs, la del menu Inicio).
+powershell -NoProfile -Command "$d=[Environment]::GetFolderPath('%~1'); if (-not $d) { exit 1 }; New-Item -ItemType Directory -Force -Path $d | Out-Null; $s=(New-Object -ComObject WScript.Shell).CreateShortcut((Join-Path $d 'Job Seeker.lnk')); $s.TargetPath=(Join-Path $env:JS_DIR 'Abrir Job Seeker.bat'); $s.WorkingDirectory=$env:JS_DIR; $s.WindowStyle=7; $s.IconLocation=(Join-Path $env:SystemRoot 'System32\shell32.dll')+',22'; $s.Description='Abrir el panel de Job Seeker'; $s.Save()" >nul 2>nul
+if errorlevel 1 (
+  echo   [!]  No pude crear el acceso directo %~2. Podes abrir el programa con "Abrir Job Seeker.bat".
+) else (
+  echo   [ok] Acceso directo "Job Seeker" creado %~2
+)
+exit /b 0
+
+:in_zip
+echo  Parece que abriste el instalador desde adentro del archivo .zip.
+echo  Asi el programa quedaria en una carpeta temporal y tus datos se perderian.
+echo.
+echo  Primero descomprimilo: clic derecho sobre JobSeeker-Windows.zip, "Extraer todo",
+echo  elegi un lugar fijo (por ejemplo Documentos) y despues hace doble clic en
+echo  Instalar.bat dentro de la carpeta JobSeeker que se crea.
+echo.
+pause
+exit /b 1
 
 :no_node
 echo.

@@ -37,6 +37,9 @@
   .tools input[type=file] { display:none; }
   .presets { margin:6px 0 14px; } .row-btns { display:flex; gap:6px; flex-wrap:wrap; align-items:center; }
   #imp { margin:10px 0 0; white-space:pre-line; color:var(--muted); } #imp.ok { color:var(--ok); } #imp.err { color:var(--err); }
+  /* Simple view (lib/config ui_mode): the basics first, everything else under "Opciones avanzadas". */
+  body.simple [data-adv] { display:none !important; } body:not(.simple) [data-simple] { display:none !important; }
+  details.adv { margin:16px 0; } details.adv > summary { cursor:pointer; font-weight:600; font-size:16px; padding:10px 0; }
 </style>
 </head>
 <body>
@@ -45,7 +48,12 @@
   <p class="sub">Todo se guarda en un archivo local de esta computadora. No hace falta completar todo: lo mínimo es tu nombre, tu email y los puestos que buscás.</p>
 </header>
 <main>
-<section>
+<section data-simple>
+  <h2>La forma más fácil</h2>
+  <p class="sub">Subí tu CV (PDF o Word) en el asistente y respondé unas preguntas: completa todo lo de abajo por vos. Acá podés revisar y corregir lo que cargaste.</p>
+  <div class="tools"><button type="button" class="primary" onclick="location.href='/asistente'">Usar el asistente con mi CV</button></div>
+</section>
+<section data-adv>
   <h2>Cargar sin tipear</h2>
   <p class="sub">Opcional: son atajos para no completar campo por campo. Lo obligatorio es solo tu nombre, tu email y los puestos que buscás.</p>
   <p class="sub">Primera vez y solo tenés tu CV? Probá el <a href="/asistente">asistente con preguntas</a>: lee tu CV y arma la configuración con vos.</p>
@@ -79,15 +87,15 @@
 const TOKEN = "__CONFIG_TOKEN__";
 const REQUIRED = ["target_titles", "first_name", "email"];
 const GROUPS = [
-  ["Qué buscás", "Obligatorio: puestos objetivo. Lo demás es opcional. El título del aviso tiene que contener alguno de tus puestos objetivo. Una entrada por línea, en todos los idiomas en que busques.",
-    ["target_titles", "avoid", "senior_only", "description_avoid", "search_queries", "work_modes", "posted_within", "search_location", "onsite_places", "seniority_levels", "salary_min_usd", "salary_min_ars", "min_fit", "ats_boards", "other_portals"]],
+  ["Qué buscás", "Obligatorio: puestos objetivo. Lo demás es opcional. El título del aviso tiene que contener alguno de tus puestos objetivo. Una entrada por línea, en todos los idiomas en que busques. No hace falta repetirlas con o sin tilde, en mayúsculas, en plural o en femenino.",
+    ["target_titles", "avoid", "senior_only", "description_avoid", "equivalents", "search_queries", "work_modes", "posted_within", "search_location", "onsite_places", "seniority_levels", "salary_min_usd", "salary_min_ars", "min_fit", "ats_boards", "other_portals", "portals_posted_within"]],
   ["Empresas", "Opcional. Las empresas a evitar se descartan siempre. Los tipos de empresa y las condiciones excluyentes los usa el agente al evaluar cada aviso.",
     ["target_companies", "avoid_companies", "company_types_preferred", "company_types_avoid", "deal_breakers"]],
   ["Ritmo y límites", "Opcional. Vacío: se usan los valores por defecto (de 7 a 19, entre 10 y 15 por día en LinkedIn, sábado la mitad, domingo descanso, 5 por empresa, 2 semanas de arranque gradual). Si LinkedIn muestra un captcha, una verificación o un aviso de límite, el programa frena solo unos días y el panel te avisa.",
     ["timezone", "start_hour", "end_hour", "daily_cap_min", "daily_cap_max", "half_days", "rest_days", "company_cap", "ramp_weeks", "notify"]],
   ["Tus datos", "Obligatorio: nombre y email. Lo demás es opcional, pero muchos formularios piden teléfono y LinkedIn. Se usan para completar formularios.", ["first_name", "last_name", "email", "phone", "city", "state", "country", "linkedin_url"]],
   ["Respuestas para formularios", "Opcional, pero recomendado. Solo se responde con lo que cargues acá. Lo que falte queda como pregunta pendiente y la postulación espera.",
-    ["headline", "current_company", "school_name", "degree", "field_of_study", "years_of_experience", "experience_years", "english_level", "spanish_level", "notice_period", "seniority", "salary_default", "salary_ars", "salary_usd", "qa"]],
+    ["headline", "current_company", "school_name", "degree", "field_of_study", "has_degree", "years_of_experience", "experience_years", "english_level", "spanish_level", "notice_period", "seniority", "salary_default", "salary_ars", "salary_usd", "work_authorization", "needs_sponsorship", "willing_to_relocate", "can_travel", "drivers_license", "qa"]],
   ["Seguimiento", "Opcional. Si no tenés planilla, dejalo vacío: el programa lleva su propio registro (lo ves en Tablero). Si llevás una planilla con tus postulaciones, indicá dónde está: el programa la lee antes de cada corrida para no repetir avisos. Solo la lee; nunca la modifica. Las postulaciones que envía el programa se anotan aparte, en un archivo .csv.",
     ["tracking_file", "auto_log_file"]],
   ["CV para cada aviso", "Opcional, pero recomendado: sin CV cargado, LinkedIn usa el que tengas marcado ahí. En la Solicitud sencilla de LinkedIn se elige un CV para cada aviso: el de inglés si el aviso está en inglés (o en otro idioma, o es de un país de habla no hispana) y el de español si está en español. Se busca entre los CV que ya tenés guardados en LinkedIn por el nombre del archivo; si no está, se sube desde esta computadora. Si no lo puede elegir ni subir, no envía la postulación.",
@@ -95,13 +103,20 @@ const GROUPS = [
   ["Texto del CV y contexto", "Opcional. Podés pegar el texto del CV y un informe con tus preferencias; el agente los lee al armar tu perfil.",
     ["cv_text", "context_notes"]],
 ];
+// What a beginner needs; the simple view shows these first and the rest under "Opciones avanzadas".
+const BASIC = ["first_name", "last_name", "email", "phone", "target_titles", "work_modes", "search_location", "onsite_places", "posted_within",
+  "years_of_experience", "english_level", "notice_period", "salary_ars", "work_authorization", "cv_text"];
+let MODE = "avanzado";
 const HINTS = {
   ats_boards: "Opcional. Direcciones de páginas de empleo de empresas que te interesan y usan Greenhouse, Lever o Ashby, por ejemplo https://boards.greenhouse.io/empresa, https://jobs.lever.co/empresa o https://jobs.ashbyhq.com/empresa. En Avisos para revisar, \"Buscar en páginas de empresas\" trae sus avisos que pasan tus filtros; la corrida automática también los revisa.",
+  posted_within: "Para LinkedIn: la búsqueda solo trae avisos publicados en ese plazo (Último día = las últimas 24 horas). También vale para los avisos de LinkedIn que llevan al sitio de la empresa.",
+  portals_posted_within: "Vacío: la misma que LinkedIn. Se aplica en la búsqueda de cada sitio y además con la fecha que muestra cada aviso (Último día = publicados hoy o ayer). Las páginas de empresas (Greenhouse, Lever, Ashby) no se filtran por antigüedad: la empresa cierra el aviso cuando ya no busca.",
   other_portals: "Opcional. En Avisos para revisar, \"Buscar en Computrabajo, Bumeran y ZonaJobs\" busca tus puestos en estos sitios. Vacío = los tres. El programa no se postula ahí: te postulás vos con tu cuenta de cada sitio.",
   min_fit: "La afinidad compara cada aviso con lo que buscás y con el texto de tu CV: puesto, palabras clave, nivel, lugar e idioma. Se muestra en la simulación, en Avisos para revisar y en Seguimiento. Si ponés un mínimo (por ejemplo 55), los avisos con menos no se postulan. Empezá sin mínimo y miralo unos días antes de usarlo.",
   cv_text: "Pegá el texto completo de tu CV. Sirve para la afinidad, para ver qué palabras clave del aviso no figuran y para armar un CV adaptado a cada aviso. Nunca se le agrega nada solo.",
   search_queries: 'Ejemplo: ("HR Business Partner" OR HRBP OR "People Partner") NOT (intern OR pasante). Una búsqueda por línea; en cada corrida se usan todas.',
   onsite_places: "Uno por línea. Ejemplo: buenos aires, caba, san isidro, vicente lopez. Un aviso presencial o híbrido pasa solo si su lugar (lo que está antes de la primera coma) coincide con alguno. Los remotos pasan siempre. Vacío: no se filtra por lugar.",
+  equivalents: "Opcional. Una regla por línea, con las palabras separadas por =. Ejemplo: gestión del talento = talent management. Los filtros ya entienden solos mayúsculas, tildes, plural y femenino, abreviaturas comunes (Sr, Ssr, Jr, RRHH, HRBP), palabras que se usan para lo mismo (selección y reclutamiento; pasante y practicante; remoto y home office) y un error de tipeo en palabras largas. En los puestos objetivo también cuentan las traducciones (RRHH y HR, reclutador y recruiter). Acá sumás las de tu rubro; valen en todas las listas. Para que una entrada de cualquier lista se compare tal cual, sin variantes, escribila entre comillas.",
   senior_only: "Ejemplo: analista, analyst. Un aviso con esas palabras en el título solo pasa si también dice Senior o Sr (Semi Senior y Ssr no cuentan).",
   photo_path: "Opcional. Algunos formularios de empresas piden foto: el agente sube esta. Clic derecho sobre la imagen, \"Copiar como ruta de acceso\". Hasta 5 MB.",
   work_modes: "Sin marcar: no filtra por modalidad.",
@@ -116,7 +131,7 @@ const HINTS = {
   cv_rules: "Opcional, una por línea. Ejemplo: recruiter it = CV_IT.pdf. Si el título o la descripción del aviso tienen esas palabras, se usa ese CV antes que la regla del idioma.",
   salary_default: "Dejalo vacío si preferís que las preguntas de sueldo te las consulte cada vez.",
 };
-const LABELS = { mon: "Lunes", tue: "Martes", wed: "Miércoles", thu: "Jueves", fri: "Viernes", sat: "Sábado", sun: "Domingo", remote: "Remoto", hybrid: "Híbrido", onsite: "Presencial", day: "Último día", week: "Última semana", month: "Último mes" };
+const LABELS = { mon: "Lunes", tue: "Martes", wed: "Miércoles", thu: "Jueves", fri: "Viernes", sat: "Sábado", sun: "Domingo", remote: "Remoto", hybrid: "Híbrido", onsite: "Presencial", si: "Sí", no: "No", "en curso": "En curso", day: "Último día", "2days": "Últimos 2 días", "3days": "Últimos 3 días", week: "Última semana", month: "Último mes" };
 let META = {}, PENDING = [];
 const el = (tag, attrs = {}, kids = []) => { const e = document.createElement(tag); for (const [k, v] of Object.entries(attrs)) { if (k === "text") e.textContent = v; else if (k === "class") e.className = v; else e.setAttribute(k, v); } kids.forEach((c) => e.appendChild(c)); return e; };
 
@@ -181,12 +196,20 @@ function render(settings) {
     });
     main.appendChild(s);
   }
+  const simple = MODE === "simple";
+  if (simple) {
+    const b = el("section", {}, [el("h2", { text: "Lo básico" }), el("p", { class: "sub", text: "Con esto alcanza para empezar. Obligatorio: tu nombre, tu email y los puestos que buscás. Los puestos van uno por línea: un aviso se tiene en cuenta si su título contiene alguno." })]);
+    BASIC.filter((k) => META[k]).forEach((k) => b.appendChild(field(k, settings[k])));
+    main.appendChild(b);
+  }
+  const holder = simple ? el("details", { class: "adv" }, [el("summary", { text: "Opciones avanzadas (para personalizar todo)" })]) : main;
   GROUPS.forEach(([title, sub, keys]) => {
     const s = el("section", {}, [el("h2", { text: title }), el("p", { class: "sub", text: sub })]);
     if (title === "Qué buscás") s.appendChild(presetBar(settings));
-    keys.filter((k) => META[k]).forEach((k) => s.appendChild(field(k, settings[k])));
-    main.appendChild(s);
+    keys.filter((k) => META[k] && !(simple && BASIC.includes(k))).forEach((k) => s.appendChild(field(k, settings[k])));
+    holder.appendChild(s);
   });
+  if (simple) main.appendChild(holder);
 }
 
 // --- presets by area ---
@@ -217,7 +240,7 @@ function presetBar(settings) {
   }
   box.appendChild(row); box.appendChild(msg);
   // First time (nothing loaded yet): the HR template comes filled in, ready to edit.
-  if (PRESETS && PRESETS.rrhh && !(settings.target_titles || []).length && !(settings.search_queries || []).length) {
+  if (MODE !== "simple" && PRESETS && PRESETS.rrhh && !(settings.target_titles || []).length && !(settings.search_queries || []).length) {
     setTimeout(() => {
       PRESET_FIELDS.forEach((k) => { const n = document.getElementById("f_" + k); if (n && !n.value.trim()) n.value = (PRESETS.rrhh[k] || []).join("\n"); });
       msg.textContent = "Vienen cargados términos de ejemplo de Recursos Humanos. Cambialos por los tuyos, o elegí otra plantilla, y tocá Guardar.";
@@ -247,7 +270,11 @@ async function load() {
   const j = await r.json();
   if (!r.ok) throw new Error(j.error || "No se pudo cargar");
   if (!PRESETS) { try { const pr = await fetch("/api/presets", { headers: { "X-Config-Token": TOKEN } }).then((r) => r.json()); PRESETS = pr.presets; PRESET_FIELDS = pr.fields || []; } catch (e) { PRESETS = null; } }
-  META = j.fields; PENDING = j.pending || []; render(j.settings || {});
+  META = j.fields; PENDING = j.pending || [];
+  const st = j.settings || {};
+  MODE = st.ui_mode || ((st.target_titles || []).length ? "avanzado" : "simple");
+  document.body.classList.toggle("simple", MODE === "simple");
+  render(st);
 }
 async function api(path, body) {
   const r = await fetch(path, { method: body === undefined ? "GET" : "POST", headers: { "Content-Type": "application/json", "X-Config-Token": TOKEN }, body: body === undefined ? undefined : JSON.stringify(body) });

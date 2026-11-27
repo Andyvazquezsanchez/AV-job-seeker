@@ -81,7 +81,7 @@ async function main() {
 
   // 7. Next steps
   say('\nListo. El panel tiene botones para todo lo básico:');
-  say(process.platform === 'win32' ? '  doble clic en "Abrir Job Seeker" (o en el acceso directo del Escritorio)' : '  sh abrir.sh   (o: node scripts/dashboard.js --open)');
+  say(process.platform === 'win32' ? '  doble clic en "Abrir Job Seeker" (o en el acceso directo del Escritorio o del menú Inicio)' : '  sh abrir.sh   (o: node scripts/dashboard.js --open)');
   say('El manual está en MANUAL.md\n');
   if (OPEN) spawn(process.execPath, [path.join(ROOT, 'scripts', 'dashboard.js'), '--open'], { cwd: ROOT, stdio: 'inherit' });
 }

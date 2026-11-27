@@ -240,12 +240,40 @@ function toast(msg, undo, err) {
 }
 
 // ---------- filtering ----------
+// The search box ignores upper case, accents and punctuation, and accepts plural, gender and a typing
+// mistake in long words ("seleccion" finds "Selección", "analistas" finds "Analista"), like the program's filters.
+const fold = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '').replace(/[^a-z0-9+#]+/g, ' ').trim();
+const lightStem = (w) => { let s = w; if (s.length > 4 && s.endsWith('s')) s = s.slice(0, -1); if (s.length > 4 && /[aeo]$/.test(s)) s = s.slice(0, -1); return s; };
+function editsUpTo(a, b, max) {
+  if (Math.abs(a.length - b.length) > max) return false;
+  let prev = Array.from({ length: b.length + 1 }, (_, j) => j), prev2 = null;
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i];
+    for (let j = 1; j <= b.length; j++) {
+      let v = Math.min(prev[j] + 1, cur[j - 1] + 1, prev[j - 1] + (a[i - 1] === b[j - 1] ? 0 : 1));
+      if (prev2 && i > 1 && j > 1 && a[i - 1] === b[j - 2] && a[i - 2] === b[j - 1]) v = Math.min(v, prev2[j - 2] + 1);
+      cur[j] = v;
+    }
+    prev2 = prev; prev = cur;
+  }
+  return prev[b.length] <= max;
+}
+function nearWord(a, b) {
+  const x = lightStem(a), y = lightStem(b);
+  if (x === y) return true;
+  const n = Math.min(x.length, y.length);
+  return n >= 5 && x[0] === y[0] && /^[a-z]+$/.test(x + y) && editsUpTo(x, y, n >= 9 ? 2 : 1);
+}
+function matchesSearch(text, q) {
+  const t = fold(text), words = t.split(' ');
+  return fold(q).split(' ').filter(Boolean).every((w) => t.includes(w) || words.some((x) => nearWord(w, x)));
+}
 function filtered() {
   if (!DATA) return [];
-  const q = state.q.trim().toLowerCase();
+  const q = state.q.trim();
   const since = state.period ? Date.now() - Number(state.period) * 86400000 : 0;
   return DATA.apps.filter((a) => {
-    if (q && !(a.company + ' ' + a.role).toLowerCase().includes(q)) return false;
+    if (q && !matchesSearch(a.company + ' ' + a.role, q)) return false;
     if (state.stage === 'activas' ? !ACTIVE.includes(a.status) : state.stage === 'cerradas' ? ACTIVE.includes(a.status) : state.stage && a.status !== state.stage) return false;
     if (since && (!a.applied_at || new Date(a.applied_at) < since)) return false;
     if (state.origin && a.origin !== state.origin) return false;

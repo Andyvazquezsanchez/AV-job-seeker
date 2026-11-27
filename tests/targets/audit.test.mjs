@@ -74,6 +74,23 @@ describe('panel actions', () => {
     expect(jobs.plan('apply', { max: 500 }).steps[1]).toContain('25');
     expect(jobs.plan('simulate', { max: 'x' }).steps[1]).toContain('10');
   });
+  it('"Postular ahora" takes separate numbers for LinkedIn, other job sites and company pages', () => {
+    const only = jobs.plan('apply', { max: 5 });
+    expect(only.steps).toHaveLength(2);
+    const all = jobs.plan('apply', { max: 5, portales: '999', ats: '7' });
+    expect(all.steps).toHaveLength(4);
+    expect(all.steps[2].always).toBe(true);
+    expect(all.steps[2].args).toContain('40');
+    expect(all.steps[3].args).toContain('7');
+    expect(jobs.plan('apply', { max: 5, portales: '-3', ats: 'x' }).steps).toHaveLength(2);
+  });
+  it('recency settings accept 2 and 3 days for LinkedIn and the other job sites', () => {
+    const cfg = require('../../lib/config');
+    const { clean, errors } = cfg.sanitize({ posted_within: '2days', portals_posted_within: '3days' });
+    expect(errors).toEqual([]);
+    expect(clean).toMatchObject({ posted_within: '2days', portals_posted_within: '3days' });
+    expect(require('../../lib/job-filter').buildSearchUrl({ keywords: 'rrhh', prefs: { posted_within: '2days' } })).toContain('f_TPR=r172800');
+  });
 });
 
 describe('local server', () => {

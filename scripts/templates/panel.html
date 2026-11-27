@@ -25,6 +25,7 @@
   .step { display:grid; grid-template-columns:34px 1fr auto; gap:14px; align-items:center; background:var(--card); border:1px solid var(--line); border-radius:10px; padding:14px 18px; }
   .num { width:34px; height:34px; border-radius:50%; background:var(--soft); color:var(--accent); display:grid; place-items:center; font-weight:700; }
   .acts { display:flex; gap:8px; align-items:center; flex-wrap:wrap; justify-content:flex-end; }
+  .acts.col { flex-direction:column; align-items:flex-end; flex-wrap:nowrap; } .acts.col label.n { white-space:nowrap; } .acts.col label.n[data-simple] { white-space:normal; max-width:230px; align-items:flex-start; }
   button, a.btn { font:inherit; padding:8px 14px; border-radius:6px; border:1px solid var(--line); background:var(--card); color:var(--text); cursor:pointer; text-decoration:none; white-space:nowrap; }
   button.primary, a.btn.primary { background:var(--accent); border-color:var(--accent); color:#fff; font-weight:600; }
   button.danger { background:var(--err); border-color:var(--err); color:#fff; font-weight:600; }
@@ -45,12 +46,19 @@
   #pausa[hidden] { display:none; }
   #pausa strong { color:var(--warn); }
   @media (max-width:640px) { .step { grid-template-columns:34px 1fr; } .acts { grid-column:1 / -1; justify-content:flex-start; } }
+  /* Simple view: the guided steps only. Advanced view: every option. */
+  body.simple [data-adv] { display:none !important; } body:not(.simple) [data-simple] { display:none !important; }
+  .mode { margin-left:auto; display:flex; gap:6px; align-items:center; color:var(--muted); font-size:13px; }
+  .mode button { padding:4px 10px; font-size:13px; } .mode button.on { background:var(--accent); border-color:var(--accent); color:#fff; }
+  details.tips { background:var(--card); border:1px solid var(--line); border-radius:10px; padding:12px 18px; margin:16px 0; }
+  details.tips summary { cursor:pointer; font-weight:600; } details.tips li { margin:6px 0; color:var(--text); font-size:14px; }
 </style>
 </head>
 <body>
 <header>
   <h1>Job Seeker</h1>
   <nav><a class="here" href="/">Panel</a><a href="/config">Configuración</a><a href="/avisos">Avisos para revisar</a><a href="/tablero">Seguimiento</a></nav>
+  <div class="mode" id="mode">Vista: <button type="button" data-mode="simple" title="Los pasos básicos, guiados">Simple</button><button type="button" data-mode="avanzado" title="Todas las opciones">Avanzada</button></div>
 </header>
 <main>
   <section id="pausa" hidden>
@@ -69,8 +77,10 @@
 
   <div class="steps">
     <div class="step"><div class="num">1</div>
-      <div><h2>Cargar tus datos y qué buscás<span class="opt req">Necesario</span></h2><p class="sub">Lo único obligatorio es tu nombre, tu email y los puestos que buscás. Lo demás (respuestas para formularios, CV, empresas a evitar) es opcional, pero mejora los resultados. Podés usar el asistente con preguntas, pegar texto o importar archivos.</p></div>
-      <div class="acts"><a class="btn" href="/asistente">Asistente con preguntas</a><a class="btn primary" href="/config">Abrir configuración</a></div></div>
+      <div data-adv><h2>Cargar tus datos y qué buscás<span class="opt req">Necesario</span></h2><p class="sub">Lo único obligatorio es tu nombre, tu email y los puestos que buscás. Lo demás (respuestas para formularios, CV, empresas a evitar) es opcional, pero mejora los resultados. Podés usar el asistente con preguntas, pegar texto o importar archivos.</p></div>
+      <div class="acts" data-adv><a class="btn" href="/asistente">Asistente con preguntas</a><a class="btn primary" href="/config">Abrir configuración</a></div>
+      <div data-simple><h2>Contanos sobre vos<span class="opt req">Necesario</span></h2><p class="sub">Subí tu CV (PDF o Word) y respondé unas preguntas simples: qué puestos buscás, dónde y algunas respuestas que piden los formularios. Con eso el programa arma tu búsqueda. Lleva unos 5 minutos y después podés cambiar todo.</p></div>
+      <div class="acts" data-simple><a class="btn primary" href="/asistente">Empezar con mi CV</a><a class="btn" href="/config">Ver lo que cargué</a></div></div>
 
     <div class="step"><div class="num">2</div>
       <div><h2>Iniciar sesión en LinkedIn<span class="opt req">Necesario</span></h2><p class="sub">Abre una ventana de Chrome propia del programa. Escribís tu contraseña ahí; el programa no la ve ni la guarda. Se hace una sola vez.</p></div>
@@ -81,10 +91,10 @@
       <div class="acts"><label class="n">Hasta <input class="n" id="max-sim" type="number" min="1" max="25" value="10"></label><button class="primary" data-run="simulate" data-max="max-sim">Simular</button></div></div>
 
     <div class="step"><div class="num">4</div>
-      <div><h2>Postular ahora</h2><p class="sub">Envía postulaciones reales a los avisos con solicitud sencilla de LinkedIn, respetando horario, tope diario y pausas. Los avisos que te mandan a la página de la empresa no se envían: quedan en "Avisos para revisar" para que los abras vos o se los pases al agente de IA. Las que tengan preguntas sin respuesta tuya tampoco se envían.</p></div>
-      <div class="acts"><label class="n">Hasta <input class="n" id="max-apply" type="number" min="1" max="25" value="5"></label><button id="apply">Postular ahora</button><button class="danger" id="apply-yes" hidden>Confirmar: enviar postulaciones reales</button><button id="apply-no" hidden>Cancelar</button></div></div>
+      <div><h2>Postular ahora</h2><p class="sub">Envía postulaciones reales a los avisos con solicitud sencilla de LinkedIn, respetando horario, tope diario y pausas. Los avisos que te mandan a la página de la empresa no se envían: quedan en "Avisos para revisar" para que los abras vos o se los pases al agente de IA. Las que tengan preguntas sin respuesta tuya tampoco se envían.<span data-adv> Si ponés un número en Computrabajo, Bumeran y ZonaJobs o en Páginas de empresas, después busca esa cantidad de avisos nuevos de cada uno y los deja en "Avisos para revisar" (0 = no buscar).</span><span data-simple> Si marcás la casilla, al terminar también busca avisos en Computrabajo, Bumeran y ZonaJobs y te los deja en "Avisos para revisar": en esos sitios te postulás vos.</span></p></div>
+      <div class="acts col"><label class="n">LinkedIn: hasta <input class="n" id="max-apply" type="number" min="1" max="25" value="5"></label><label class="n" data-simple><input type="checkbox" id="simple-portales"> También traer hasta 10 avisos de Computrabajo, Bumeran y ZonaJobs</label><label class="n" data-adv>Computrabajo, Bumeran y ZonaJobs: hasta <input class="n" id="max-portales" type="number" min="0" max="40" value="0"></label><label class="n" data-adv>Páginas de empresas: hasta <input class="n" id="max-ats" type="number" min="0" max="60" value="0"></label><div class="acts"><button id="apply">Postular ahora</button><button class="danger" id="apply-yes" hidden>Confirmar: enviar postulaciones reales</button><button id="apply-no" hidden>Cancelar</button></div></div></div>
 
-    <div class="step" style="grid-template-columns:34px 1fr"><div class="num">5</div>
+    <div class="step" data-adv style="grid-template-columns:34px 1fr"><div class="num">5</div>
       <div><h2>Postulación automática<span class="opt">Opcional</span></h2>
         <p class="sub">Windows abre el programa solo en los días y horarios que elijas, y hace lo mismo que "Postular ahora": busca, filtra, se postula y guarda los avisos externos para el agente. Respeta tu horario, tu tope diario y las pausas. La computadora tiene que estar prendida y con tu sesión de Windows abierta; si estaba apagada a esa hora, corre apenas la prendas (dentro de tu horario).</p>
         <p class="sub" id="auto-state">Cargando...</p>
@@ -95,14 +105,26 @@
           <div class="row"><button class="primary" id="auto-on">Activar o guardar cambios</button><button id="auto-off">Desactivar</button><button id="auto-log">Ver registro de las corridas</button></div>
         </div></div></div>
 
-    <div class="step"><div class="num">6</div>
+    <div class="step" data-adv><div class="num">6</div>
       <div><h2>Leer mi planilla de seguimiento<span class="opt">Opcional</span></h2><p class="sub" id="sync-sub">Solo si llevás tu propio Excel o CSV con postulaciones: lo lee para no repetir avisos a los que te postulaste por otros medios. Nunca lo modifica. Si no tenés planilla, no pasa nada: el programa anota todo lo que envía y lo ves en Tablero o con Exportar.</p></div>
       <div class="acts"><button id="sync">Leer planilla ahora</button></div></div>
 
-    <div class="step"><div class="num">7</div>
+    <div class="step" data-adv><div class="num">7</div>
       <div><h2>Exportar<span class="opt">Opcional</span></h2><p class="sub">Tu configuración (para copiarla a otra computadora) o todas las postulaciones registradas, para abrir en Excel.</p></div>
       <div class="acts"><button data-export="perfil">Configuración (.json)</button><button data-export="historial">Postulaciones (.csv)</button></div></div>
   </div>
+
+  <details class="tips" data-simple>
+    <summary>Consejos para que la búsqueda rinda más</summary>
+    <ul>
+      <li><strong>Menos y mejor.</strong> Hoy cada aviso recibe cientos de postulaciones y muchas empresas las filtran con programas. Rinde más postularte a los que de verdad encajan con vos: la afinidad de cada aviso te ayuda a elegir.</li>
+      <li><strong>Avisos recientes.</strong> Postulate en los primeros días. Muchos avisos viejos ya están cubiertos o no se van a cubrir.</li>
+      <li><strong>Cuidá tu cuenta de LinkedIn.</strong> El programa arranca con pocas postulaciones por día, hace pausas y frena solo si LinkedIn muestra una advertencia. No subas el tope de golpe.</li>
+      <li><strong>Ojo con las estafas.</strong> Ninguna empresa seria te pide plata, que inviertas o que la contactes por Telegram. El programa descarta los avisos con esas señales, pero desconfiá igual de propuestas por WhatsApp con sueldos demasiado buenos.</li>
+      <li><strong>Sumá contactos.</strong> Además de postularte, escribile a alguien de la empresa o pedí que te recomienden: es de lo que más resultado da.</li>
+      <li><strong>Registrá las respuestas.</strong> En Seguimiento movés cada postulación cuando te contestan y en Números ves qué te está funcionando.</li>
+    </ul>
+  </details>
 
   <section>
     <div id="jobhead"><div><h2 id="jobtitle">Actividad</h2><span id="jobstate">Sin tareas en curso.</span></div>
@@ -189,9 +211,9 @@ function follow(id, from, title) {
   $("jobtitle").textContent = title || "Actividad"; say(""); setRunning(true); poll();
 }
 
-async function run(action, max, confirm) {
+async function run(action, max, confirm, extra) {
   try {
-    const r = await api("/api/run", { action, max, confirm });
+    const r = await api("/api/run", Object.assign({ action, max, confirm }, extra || {}));
     const titles = { login: "Iniciar sesión en LinkedIn", simulate: "Simulación", apply: "Postulación real", close: "Cerrar ventana", agent: "Agente" };
     follow(r.id, 0, titles[action]);
   } catch (e) { $("jobstate").textContent = e.message; $("jobstate").className = "err"; }
@@ -201,7 +223,16 @@ document.querySelectorAll("[data-run]").forEach((b) => { b.onclick = () => run(b
 const confirmUi = (on) => { $("apply").hidden = on; $("apply-yes").hidden = !on; $("apply-no").hidden = !on; };
 $("apply").onclick = () => confirmUi(true);
 $("apply-no").onclick = () => confirmUi(false);
-$("apply-yes").onclick = () => { confirmUi(false); run("apply", $("max-apply").value, true); };
+$("apply-yes").onclick = () => {
+  confirmUi(false);
+  const simple = document.body.classList.contains("simple");
+  run("apply", $("max-apply").value, true, simple ? { portales: $("simple-portales").checked ? 10 : 0, ats: 0 } : { portales: $("max-portales").value, ats: $("max-ats").value });
+};
+// The three numbers of "Postular ahora" are remembered in this browser.
+["max-apply", "max-portales", "max-ats"].forEach((id) => {
+  try { const v = localStorage.getItem("js-" + id); if (v !== null && v !== "") $(id).value = v; } catch (e) { /* no storage */ }
+  $(id).addEventListener("change", () => { try { localStorage.setItem("js-" + id, $(id).value); } catch (e) { /* no storage */ } });
+});
 $("stop").onclick = () => api("/api/stop", {}).catch(() => {});
 
 $("sync").onclick = async () => {
@@ -266,6 +297,20 @@ $("auto-log").onclick = async () => {
   $("jobtitle").textContent = "Registro de las corridas automáticas"; $("jobstate").textContent = ""; $("jobstate").className = "";
   say(autoLog || "Todavía no hubo ninguna corrida automática.\n"); out.scrollTop = out.scrollHeight;
 };
+
+// Simple or advanced view. Saved with the user's data; without a choice, someone with no target
+// titles yet (a new user) sees the simple view and everyone else the advanced one.
+function setMode(mode) {
+  document.body.classList.toggle("simple", mode === "simple");
+  document.querySelectorAll("#mode button").forEach((b) => b.classList.toggle("on", b.dataset.mode === mode));
+}
+document.querySelectorAll("#mode button").forEach((b) => {
+  b.onclick = async () => { setMode(b.dataset.mode); try { await api("/api/config", { settings: { ui_mode: b.dataset.mode } }); } catch (e) { /* stays for this visit */ } };
+});
+api("/api/config").then((c) => {
+  const st = c.settings || {};
+  setMode(st.ui_mode || ((st.target_titles || []).length ? "avanzado" : "simple"));
+}).catch(() => setMode("avanzado"));
 
 status().catch((e) => { $("today").textContent = e.message; });
 autoStatus().catch((e) => { $("auto-state").textContent = e.message; });

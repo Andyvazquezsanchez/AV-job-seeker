@@ -62,9 +62,9 @@ Un agente de IA de programación (Claude Code u otro que lea `AGENTS.md`) es opc
 
 1. Descomprimí el archivo `JobSeeker-Windows.zip` en un lugar fijo, por ejemplo dentro de Documentos. Clic derecho sobre el .zip, "Extraer todo". No lo ejecutes desde adentro del .zip.
 2. Entrá a la carpeta `JobSeeker` y hacé doble clic en `Instalar.bat`.
-3. Se abre una ventana negra que verifica todo, crea la base de datos, deja un acceso directo **Job Seeker** en el Escritorio y abre el panel en tu navegador.
+3. Se abre una ventana negra que verifica todo, crea la base de datos, deja un acceso directo **Job Seeker** en el Escritorio y otro en el menú Inicio, y abre el panel en tu navegador.
 
-Desde ese momento, para usar el programa abrís el acceso directo del Escritorio.
+Desde ese momento, para usar el programa abrís cualquiera de los dos accesos directos (en el menú Inicio también lo encontrás escribiendo "Job Seeker"). Si el instalador detecta que lo abriste desde adentro del .zip, se frena y te pide descomprimirlo primero.
 
 Si Windows muestra un cartel azul que dice "Windows protegió su PC": elegí "Más información" y después "Ejecutar de todas formas". Aparece con cualquier archivo `.bat` que llegó desde internet. `Instalar.bat` es un archivo de texto: lo podés abrir con el Bloc de notas y leerlo antes de ejecutarlo.
 
@@ -89,7 +89,7 @@ Todo queda dentro de la carpeta del programa:
 | `config` | Archivos que quieras importar o exportar |
 | `.browser-profile` | La sesión de LinkedIn de la ventana de Chrome del programa |
 
-Copia de seguridad: copiá la carpeta `datos` con el programa cerrado. Desinstalar: borrá la carpeta del programa y el acceso directo.
+Copia de seguridad: copiá la carpeta `datos` con el programa cerrado. Desinstalar: borrá la carpeta del programa y los dos accesos directos (Escritorio y menú Inicio).
 
 ### Es posible usar una planilla de Google, un Excel o un CSV como base de datos?
 
@@ -98,6 +98,8 @@ Como almacenamiento principal, no conviene: Google Sheets obliga a crear credenc
 ## 4. El panel
 
 El panel se abre en tu navegador (dirección `http://localhost:7531`) y solo funciona desde tu computadora. Arriba muestra el estado: si tus datos están cargados, si encontró Chrome, si tu planilla está conectada, cuántas preguntas esperan respuesta y cuántas postulaciones van hoy respecto del tope.
+
+**Vista simple y vista avanzada.** Arriba a la derecha elegís la vista; queda guardada. La **simple** es para empezar: muestra solo los pasos básicos (contar quién sos con tu CV y unas preguntas, iniciar sesión en LinkedIn, simular y postular), una casilla para traer también avisos de Computrabajo, Bumeran y ZonaJobs, y consejos para que la búsqueda rinda más. En Configuración muestra primero "Lo básico" y deja el resto en "Opciones avanzadas". La **avanzada** muestra todo: postulación automática, planilla, exportar, las tres cantidades de "Postular ahora" y cada opción de Configuración. Si todavía no cargaste tus puestos, el panel arranca en la vista simple; si ya los tenías, en la avanzada.
 
 | Botón | Qué hace |
 |---|---|
@@ -120,7 +122,8 @@ Lo mínimo para empezar: tu nombre, tu email y los puestos que buscás. Todo lo 
 Hay tres formas de arrancar, y se pueden combinar:
 
 - **Plantillas por área.** La primera vez, "Qué buscás" viene cargado con términos de ejemplo de Recursos Humanos. Arriba de esa sección hay botones para cambiar a otra área (Administración y finanzas, Tecnología, Comercial y ventas, Marketing y comunicación, Atención al cliente y operaciones) o **Vaciar**. Cada plantilla llena puestos, palabras a evitar, frases a evitar y búsquedas; después se editan como cualquier campo. Nada se guarda hasta tocar **Guardar**.
-- **Asistente con preguntas** (`/asistente`, también desde el Panel). Diez pasos: tu CV (opcional), tus datos, el área, los puestos (con variantes de liderazgo), el nivel, dónde y cómo querés trabajar, condiciones, lo que no querés y un texto libre. Si pegás el CV, detecta tus datos de contacto y sugiere el área. Al final muestra un resumen y guarda.
+- **Asistente con preguntas** (`/asistente`, también desde el Panel; es la forma recomendada para empezar). Once pasos: tu CV, tus datos, el área, los puestos (con variantes de liderazgo), el nivel, dónde y cómo querés trabajar, condiciones, las preguntas que suelen hacer los formularios, lo que no querés, un texto libre y un resumen. El CV se sube en **PDF o Word** (o se pega el texto) y se lee en tu computadora, sin mandarlo a ningún lado; detecta tus datos de contacto y sugiere el área y los puestos. Un PDF escaneado (una foto) no tiene texto para leer: en ese caso subilo en Word o pegá el texto. El nivel hay que elegirlo, porque decide qué avisos se descartan. Si ya tenías algo cargado, el asistente lo muestra y lo conserva: podés volver a pasar por él sin perder tus puestos ni tus búsquedas. Cualquier paso se puede saltear y nada se guarda hasta el final.
+- **Preguntas de los formularios.** En el asistente (paso 8) o en Configuración, "Respuestas para formularios": si podés trabajar legalmente en el país donde buscás, si necesitás visa, si tenés título universitario, si te mudarías, si podés viajar y si tenés registro de conducir. Con eso el programa responde esas preguntas cuando aparecen, en español o en inglés, en vez de frenar la postulación. Las que dejes sin responder te las consulta, como siempre.
 - **Con tu IA** (sección "Cargar sin tipear"). Ver el capítulo 6.
 
 ### Qué buscás
@@ -130,9 +133,11 @@ Hay tres formas de arrancar, y se pueden combinar:
 | Puestos objetivo | Palabras o frases que el título del aviso debe contener. Una por línea, en cada idioma en que busques. Sin esto, la postulación automática no arranca | `analista contable`, `accountant`, `tesorería` |
 | Palabras que descartan por título | Si el título contiene alguna, el aviso se descarta | `pasante`, `ventas` |
 | Frases que descartan por descripción | Igual, pero mirando el texto del aviso | `solo comisiones`, `disponibilidad para rotar turnos` |
+| Palabras que para vos significan lo mismo (opcional) | Una regla por línea, con las palabras separadas por `=`. Se suman a las que el programa ya entiende solo (ver abajo) | `gestión del talento = talent management` |
 | Búsquedas para LinkedIn | Búsquedas completas con booleanos. En cada corrida se usan todas y se juntan los avisos | ver abajo |
 | Modalidad | Remoto, híbrido, presencial. Sin marcar, no filtra | |
-| Antigüedad máxima del aviso | Último día, semana o mes | |
+| Antigüedad máxima del aviso en LinkedIn | Último día, últimos 2 o 3 días, semana o mes | |
+| Antigüedad máxima de los avisos de Computrabajo, Bumeran y ZonaJobs | Igual que la de LinkedIn; vacío = la de LinkedIn | Las páginas de empresas no se filtran por antigüedad |
 | Ubicación de búsqueda | País o ciudad | `Argentina` |
 | Lugares aceptados para avisos presenciales o híbridos | Uno por línea. Un aviso presencial o híbrido pasa solo si su lugar (lo que está antes de la primera coma) coincide con alguno. Los remotos pasan siempre | `buenos aires`, `caba`, `san isidro` |
 | Palabras del título que solo valen en puestos senior | Un aviso con esas palabras pasa solo si el título también dice Senior o Sr (Semi Senior y Ssr no cuentan) | `analista`, `analyst` |
@@ -141,7 +146,19 @@ Hay tres formas de arrancar, y se pueden combinar:
 | Páginas de empleo de empresas (opcional) | Direcciones de Greenhouse, Lever o Ashby de empresas que te interesan, una por línea (sección 8, "Otras fuentes de avisos") | `https://jobs.lever.co/empresa` |
 | Otros portales donde buscar (opcional) | computrabajo, bumeran, zonajobs. Vacío = los tres | `computrabajo` |
 
-Las coincidencias ignoran mayúsculas y tildes, y son por palabra completa: `people` no coincide con `Peoplesoft`.
+**Cómo compara las palabras.** Todos los filtros (puestos, palabras y frases a evitar, solo senior, empresas a evitar, lugares y avisos a los que ya te postulaste) y el buscador de Seguimiento comparan como lo haría una persona:
+
+- Sin diferencia por mayúsculas, tildes o puntuación: `selección` encuentra `SELECCION` y `rrhh` encuentra `RR.HH.`.
+- Singular y plural, masculino y femenino: `analista` encuentra `Analistas`; `coordinador`, `Coordinadora`.
+- Las palabras de enlace no cuentan (de, del, la, en, para, y, of, the...): `analista rrhh` encuentra `Analista de RRHH`. Una frase que empieza con una la respeta: `La Plata` no encuentra `Mar del Plata`.
+- Palabras juntas o separadas: `call center` encuentra `Callcenter`.
+- Abreviaturas y palabras que se usan para lo mismo en un idioma: `Sr` y `Senior`, `Ssr` y `Semi Senior`, `HRBP` y `HR Business Partner`, `RRHH` y `Recursos Humanos`, `selección` y `reclutamiento`, `pasante`, `pasantía` y `practicante`, `callcenter` y `contact center`, `remoto` y `home office`, entre otras de varios rubros. Las de tu rubro las sumás en "Palabras que para vos significan lo mismo".
+- En tus **puestos objetivo** también cuentan las traducciones: `RRHH` encuentra `HR`, `reclutador` encuentra `Recruiter`, `adquisición de talento` encuentra `Talent Acquisition`. En las listas que descartan o restringen (palabras y frases que descartan, solo senior, empresas, lugares) cada idioma va por separado, porque a veces se descarta una palabra en un idioma y en el otro no: `ventas` no descarta `Sales`.
+- Un error de tipeo: una letra distinta en palabras de cinco letras o más y dos en las de diez o más (`Reclutamineto` encuentra `Reclutamiento`). Las palabras cortas, los números, la primera letra y la última tienen que coincidir, así `Jr` nunca pasa por `Sr` ni `Trainee` por `Trainer`.
+- Siguen siendo palabras completas: `people` no coincide con `Peoplesoft`.
+- **Entre comillas, tal cual.** Si querés que una entrada se compare como la escribiste, sin variantes ni equivalencias, ponela entre comillas: `"liquidacion de sueldos"` ya no descarta un aviso que dice "Payroll". Mayúsculas, tildes y puntuación siguen sin importar.
+
+Por eso conviene revisar la simulación después de cargar tus puestos: si algún aviso pasa y no debería, sumá la palabra a "Palabras que descartan"; si alguno se descarta de más, poné esa entrada entre comillas.
 
 **Búsquedas con booleanos.** LinkedIn acepta `AND`, `OR`, `NOT`, comillas para frases exactas y paréntesis:
 
@@ -373,13 +390,13 @@ En **Configuración > Qué buscás** podés poner una **afinidad mínima** (por 
 Además de LinkedIn, en **Avisos para revisar** hay dos botones que suman avisos a la misma lista. Ninguno se postula: vos elegís qué hacer con cada aviso.
 
 - **Buscar en páginas de empresas.** Lee los avisos publicados en las páginas de empleo de las empresas que cargaste en Configuración ("Páginas de empleo de empresas"), si usan **Greenhouse**, **Lever** o **Ashby**. Lo reconocés por la dirección: `boards.greenhouse.io/empresa`, `jobs.lever.co/empresa` o `jobs.ashbyhq.com/empresa`. Usa los datos públicos que esas plataformas ofrecen para armar páginas de empleo: no abre el navegador ni necesita cuenta. Aplica tus filtros (puestos, empresas a evitar, frases a evitar, afinidad mínima) y deja pasar los avisos remotos sin otro país, los de tu país, los de Latinoamérica y los de tus lugares aceptados. La corrida automática también los revisa todos los días. Estos avisos se pueden pasar al agente.
-- **Buscar en Computrabajo, Bumeran y ZonaJobs.** Busca tus primeros cuatro puestos objetivo en esos sitios con la ventana de Chrome del programa, con pausas, como lo haría una persona. Lee la descripción de los primeros 12 avisos nuevos para calcular la afinidad. Si un sitio pide una verificación, frena en ese sitio. En estos portales te postulás vos con tu cuenta de cada sitio: abrí el aviso, postulate y tocá **Me postulé yo**. No se pueden pasar al agente.
+- **Buscar en Computrabajo, Bumeran y ZonaJobs.** Busca tus primeros cuatro puestos objetivo en esos sitios con la ventana de Chrome del programa, con pausas, como lo haría una persona. Lee la descripción de los primeros 12 avisos nuevos para calcular la afinidad. Si un sitio pide una verificación, frena en ese sitio. Solo trae avisos con la antigüedad que elegiste para estos portales en Configuración, y no trae los que ya figuran en tu seguimiento o en tu planilla (también las filas que tienen el portal como empresa, con la empresa real entre paréntesis: "Analista (Acme)"). Si iniciás sesión en el sitio dentro de la ventana de Chrome del programa, tampoco trae los que el sitio marca como "Ya aplicaste" o "Postulado". En estos portales te postulás vos con tu cuenta de cada sitio: abrí el aviso, postulate y tocá **Me postulé yo**. No se pueden pasar al agente.
 
 El filtro **Origen** de Avisos para revisar separa LinkedIn, páginas de empresas y otros portales.
 
 ### Postular
 
-Botón **Postular ahora**, con la cantidad máxima para esa corrida. Qué puede pasar con cada aviso:
+Botón **Postular ahora**, con tres cantidades: cuántas postulaciones en LinkedIn y, aparte, cuántos avisos nuevos traer de Computrabajo, Bumeran y ZonaJobs y de páginas de empresas a "Avisos para revisar" (0 = no buscar). Los números quedan guardados en ese navegador. Las búsquedas de los otros sitios corren aunque LinkedIn frene. Qué puede pasar con cada aviso de LinkedIn:
 
 | Resultado | Significado |
 |---|---|
@@ -496,6 +513,8 @@ Pegale al agente un mensaje de un reclutador o pedile `news`. Te devuelve el an�
 
 ## 11. Seguridad y privacidad
 
+**Avisos que parecen estafas.** En todas las fuentes (LinkedIn, páginas de empresas y portales) el programa descarta los avisos cuya descripción pide plata (inscripción, kit, depósito), paga "tareas simples" por día, pide contactar por Telegram o pide invertir. En la simulación figuran como "posible estafa". Igual desconfiá: ninguna empresa seria te pide dinero para trabajar, y las propuestas por WhatsApp con sueldos demasiado buenos suelen ser engaños.
+
 Dónde vive cada cosa:
 
 | Dato | Dónde | Sale de tu computadora |
@@ -587,11 +606,11 @@ Avanzado: quien prefiera un servidor PostgreSQL propio puede indicarlo con `DATA
 
 ## 15. Qué está probado y qué no
 
-Probado en Windows, con una cuenta real de LinkedIn: la instalación con `Instalar.bat`, el panel, las simulaciones, postulaciones reales por Solicitud sencilla, la recolección de avisos externos y el agente de IA preparando postulaciones en sitios de empresas. También en Linux: la base local, el instalador, las importaciones (perfil, historial desde Excel, CSV y JSON, contexto), la lectura de una planilla real de más de 400 filas, el registro en CSV, los filtros, las respuestas estrictas y los límites de horario y tope. Hay más de 120 pruebas automáticas (`npm test`, requiere instalar las dependencias de desarrollo).
+Probado en Windows, con una cuenta real de LinkedIn: la instalación con `Instalar.bat`, el panel, las simulaciones, postulaciones reales por Solicitud sencilla, la recolección de avisos externos y el agente de IA preparando postulaciones en sitios de empresas. También en Linux: la base local, el instalador, las importaciones (perfil, historial desde Excel, CSV y JSON, contexto), la lectura de una planilla real de más de 400 filas, el registro en CSV, los filtros, las respuestas estrictas y los límites de horario y tope. Hay más de 150 pruebas automáticas (`npm test`, requiere instalar las dependencias de desarrollo).
 
 Verificado: el `node.exe` incluido en el paquete para Windows es el binario oficial de Node.js 22.23.5; su huella SHA-256 coincide con la publicada en nodejs.org.
 
-Nuevo en las versiones 1.1 y 1.2 y probado con datos de ejemplo, todavía no con cuentas ni sitios reales: la pausa de seguridad ante avisos de LinkedIn, la lectura de novedades de Gmail, la corrida automática sin ventana negra, las notificaciones de Windows, la protección de la clave con el usuario de Windows y la búsqueda en Computrabajo, Bumeran y ZonaJobs (esos sitios cambian seguido; si un sitio no devuelve avisos, avisá). La lectura de páginas de Greenhouse, Lever y Ashby usa sus datos públicos documentados. La afinidad y las palabras clave se calculan con reglas simples sobre el texto: sirven de guía, no reemplazan tu lectura del aviso.
+Nuevo en las versiones 1.1 y 1.2 y probado con datos de ejemplo, todavía no con cuentas ni sitios reales: la pausa de seguridad ante avisos de LinkedIn, la lectura de novedades de Gmail, la corrida automática sin ventana negra y la protección de la clave con el usuario de Windows. Probado con los sitios reales en la 1.2.1: las notificaciones de Windows y la búsqueda en Computrabajo, Bumeran y ZonaJobs (esos sitios cambian seguido; si un sitio no devuelve avisos, avisá). La lectura de páginas de Greenhouse, Lever y Ashby usa sus datos públicos documentados. La afinidad y las palabras clave se calculan con reglas simples sobre el texto: sirven de guía, no reemplazan tu lectura del aviso.
 
 No probado todavía: macOS. Y LinkedIn cambia su sitio con frecuencia: si algo deja de funcionar, la simulación lo muestra antes de enviar nada.
 

@@ -28,6 +28,7 @@ const { execSync } = require('child_process');
 const { shRun, sleepSync: procSleep } = require('../lib/proc');
 const { jitter, betweenApplications, sleepSync } = require('../lib/humanize');
 const path = require('path');
+const textMatch = require('../lib/text-match');
 
 const REPO_ROOT = path.resolve(__dirname, '..');
 const BROWSER_JS = path.join(REPO_ROOT, '.agents', 'skills', 'browser-automation', 'scripts', 'browser.js');
@@ -138,10 +139,8 @@ function filterRelevant(posts, keywords) {
   const hiringTerms = ['hiring', 'buscamos', 'looking for', 'vacante', 'oportunidad', 'remote', 'remoto'];
   const allTerms = [...searchTerms, ...hiringTerms];
 
-  return posts.filter((p) => {
-    const content = (p.content || '').toLowerCase();
-    return allTerms.some((term) => content.includes(term));
-  });
+  // Compared with lib/text-match.js: no difference with accents, plural, equivalents or typing mistakes.
+  return posts.filter((p) => !!textMatch.wide.find(p.content || '', allTerms));
 }
 
 function dedupe(posts) {

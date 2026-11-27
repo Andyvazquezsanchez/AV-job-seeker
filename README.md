@@ -14,6 +14,7 @@ Gratis para uso personal.
 
 ## Qué hace
 
+- **Arranca fácil.** Subís tu CV (PDF o Word) y respondés unas preguntas simples: el asistente arma tu búsqueda. La vista simple te guía paso a paso; la avanzada te deja personalizar todo.
 - **Busca avisos en LinkedIn** con los puestos, lugares y palabras que vos definís.
 - **Filtra** los que no van: empresas que querés evitar, puestos de otro nivel, avisos presenciales lejos de donde vivís.
 - **Se postula solo a los avisos con Solicitud sencilla**, completando los formularios con tus datos y eligiendo el CV adecuado (por ejemplo, en inglés si el aviso está en inglés).
@@ -24,6 +25,23 @@ Gratis para uso personal.
 - **Te recuerda cuándo hacer seguimiento**, con un borrador de mensaje que adaptás y enviás vos.
 - **Lee las novedades de tu Gmail** (solo la lista de correos) y te sugiere cambios de etapa: un rechazo, una invitación a entrevista. Los aplicás vos.
 - **Puede trabajar en automático** los días y horarios que elijas, con un tope diario.
+
+### Novedades de la versión 1.3
+
+- Vista simple para empezar: arriba a la derecha del panel elegís "Simple" (los pasos básicos, guiados) o "Avanzada" (todas las opciones). En Configuración, la simple muestra primero lo básico.
+- El asistente lee tu CV en PDF o en Word, en tu computadora, y conserva lo que ya tenías cargado. El nivel ahora hay que elegirlo.
+- Preguntas que suelen hacer los formularios (si podés trabajar legalmente, si necesitás visa, título, mudanza, viajes, registro): las respondés una vez y el programa ya no frena por ellas.
+- Se descartan los avisos que parecen estafas: piden plata, pagan "tareas" por día, piden contacto por Telegram o que inviertas.
+- Los filtros comparan como una persona: sin importar mayúsculas, tildes, plural o femenino, con abreviaturas (Sr, Ssr, RRHH, HRBP), palabras que se usan para lo mismo y un error de tipeo en palabras largas. En los puestos objetivo también cuentan las traducciones (RRHH y HR, reclutador y recruiter). Una entrada entre comillas se compara tal cual.
+- Consejos en la vista simple para que la búsqueda rinda más.
+- El instalador deja el acceso directo en el Escritorio y también en el menú Inicio, y se frena si lo abrís desde adentro del .zip.
+
+### Novedades de la versión 1.2.1
+
+- Antigüedad aparte para Computrabajo, Bumeran y ZonaJobs en Configuración (vacío = la misma que LinkedIn). LinkedIn y los portales aceptan también "últimos 2 días" y "últimos 3 días".
+- "Postular ahora" pide tres cantidades: postulaciones en LinkedIn y cuántos avisos nuevos traer de Computrabajo, Bumeran y ZonaJobs y de páginas de empresas (0 = no buscar).
+- Los portales no traen avisos a los que ya te postulaste: los de tu seguimiento, los de tu planilla y, si iniciaste sesión en el sitio dentro de la ventana del programa, los que el sitio marca como "Ya aplicaste" o "Postulado".
+- Arreglos: Bumeran y ZonaJobs leen bien cada aviso (título, empresa, lugar y fecha), la descripción de Computrabajo ya no trae búsquedas relacionadas y las notificaciones de Windows aparecen.
 
 ### Novedades de la versión 1.2
 
@@ -61,7 +79,7 @@ Nada más: el resto viene incluido en la descarga.
 2. **Descomprimilo en un lugar fijo**, por ejemplo en Documentos: clic derecho sobre el archivo y "Extraer todo". No lo abras desde adentro del .zip.
 3. **Abrí la carpeta `JobSeeker` y hacé doble clic en `Instalar.bat`.** Se abre una ventana negra que muestra lo que hace; tarda menos de un minuto.
    > Si aparece un cartel azul que dice "Windows protegió su PC", es normal con archivos bajados de internet: tocá **"Más información"** y después **"Ejecutar de todas formas"**.
-4. **Listo.** Queda un acceso directo **Job Seeker** en el Escritorio. Cada vez que quieras usar el programa, abrilo desde ahí.
+4. **Listo.** Queda un acceso directo **Job Seeker** en el Escritorio y otro en el menú Inicio. Cada vez que quieras usar el programa, abrilo desde cualquiera de los dos.
 
 Al abrirlo se abren dos cosas: el **panel** en tu navegador y una **ventana negra** minimizada. Mientras la ventana negra esté abierta, el programa funciona; para apagarlo, cerrala.
 
@@ -94,7 +112,7 @@ Los pasos, en este orden:
 2. Descargar JobSeeker-Windows.zip desde https://github.com/Andyvazquezsanchez/AV-job-seeker/releases/latest/download/JobSeeker-Windows.zip
 3. Descomprimirlo en Documentos (clic derecho, "Extraer todo"), sin abrirlo desde adentro del .zip.
 4. Abrir la carpeta JobSeeker y hacer doble clic en Instalar.bat. Si aparece el cartel azul "Windows protegió su PC", tocar "Más información" y "Ejecutar de todas formas".
-5. Abrir el acceso directo "Job Seeker" del Escritorio. Se abre un panel en el navegador y una ventana negra que no tengo que cerrar.
+5. Abrir el acceso directo "Job Seeker" del Escritorio o del menú Inicio. Se abre un panel en el navegador y una ventana negra que no tengo que cerrar.
 6. Cargar mis datos en el panel. Lo obligatorio es nombre, email y los puestos que busco. Ayudame a elegir los puestos y las palabras clave según mi perfil, que te voy a contar. Si uso la opción "Armarlo con tu IA" del programa, te voy a pegar unas instrucciones: seguilas.
 7. Iniciar sesión en LinkedIn desde el paso 2 del panel y después tocar "Simular" para ver qué avisos elegiría, sin enviar nada.
 

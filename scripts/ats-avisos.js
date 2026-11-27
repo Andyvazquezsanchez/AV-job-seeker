@@ -8,7 +8,7 @@
  * Boards come from Configuración > "Páginas de empleo de empresas" (job_preferences.ats_boards)
  * and from the careers addresses of users.data.target_companies.
  *
- * Usage: node scripts/ats-avisos.js [--quiet]
+ * Usage: node scripts/ats-avisos.js [--quiet] [--max-new N]   (--max-new: at most N new jobs, up to 60)
  */
 'use strict';
 const store = require('../lib/store');
@@ -20,7 +20,8 @@ const { findMatch } = require('../lib/match');
 
 const quiet = process.argv.includes('--quiet');
 const say = (t) => process.stdout.write(t + '\n');
-const MAX_NEW = 60;
+const asked = Number.parseInt(process.argv[process.argv.indexOf('--max-new') + 1], 10);
+const MAX_NEW = process.argv.includes('--max-new') && asked > 0 ? Math.min(asked, 60) : 60;
 
 function boardsOf(d) {
   const prefs = d.job_preferences || {};
@@ -73,7 +74,7 @@ function boardsOf(d) {
       const place = boardsLib.placeOk(j.location, j.remote, prefs, country);
       if (!place.pass) { count('lugar'); continue; }
       const desc = jobFilter.checkDescription(j.description, prefs);
-      if (!desc.pass) { count('descripción'); continue; }
+      if (!desc.pass) { count(desc.reason.startsWith('possible_scam') ? 'posible estafa' : 'descripción'); continue; }
       const key = j.url.split('?')[0].replace(/\/+$/, '');
       if (ext.has({ url: j.url }) || appUrls.has(key) || findMatch({ company: j.company, role: j.role }, apps)) { count('ya conocido'); continue; }
       let fit = null;

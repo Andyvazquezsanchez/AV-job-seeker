@@ -52,6 +52,7 @@ function reasonText(reason) {
   if (r.startsWith('avoid_company')) return `empresa que evitás: ${rest}`;
   if (r.startsWith('salary_low')) return `salario publicado de ${rest}`;
   if (r.startsWith('description_avoid')) return `la descripción menciona "${rest}"`;
+  if (r.startsWith('possible_scam')) return `posible estafa: ${rest}`;
   if (r.startsWith('avoid:')) return `el título contiene "${rest}"`;
   if (r.startsWith('not_senior:')) return `"${rest}" solo vale en puestos senior`;
   if (r.startsWith('location:')) return `presencial o híbrido fuera de tus lugares: ${rest}`;
